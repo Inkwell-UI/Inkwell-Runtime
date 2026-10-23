@@ -1,6 +1,6 @@
 # Spike: runtime menu (milestone 0.0, spike 3)
 
-Status: **FINAL (2026-10-23, SPIKES.md sections 1, 2). PARTIAL: local build PASS and in-game PASS (register / open / `LoadMovieEx`) on Skyrim SE 1.7.104; the GitHub Actions workflow was never run (nothing pushed).**
+Status: **FINAL (2026-10-23, SPIKES.md sections 1, 2, 10). PASS: local build PASS, in-game PASS (register / open / `LoadMovieEx`) on Skyrim SE 1.7.104, and the GitHub Actions Windows build PASS after one preset fix (CI result reported by the owner; see the CI row below).**
 
 ## Question
 
@@ -47,7 +47,7 @@ cmake --build --preset release
 # -> build\Release\Inkwell.dll
 ```
 
-The first configure installs the vcpkg packages (~1.5 min) and compiles CommonLibSSE from source (~15+ min locally). In GitHub Actions the CommonLib prebuilt bundle is used automatically when it matches the toolset.
+The first configure installs the vcpkg packages (~1.5 min) and compiles CommonLibSSE from source (~15+ min locally). The CI preset has no hard-coded Visual Studio generator (the runner image changes over time); pin one with `-G` locally if CMake picks the wrong one.
 
 ## In-game test script (author)
 
@@ -71,7 +71,7 @@ What the log should show: runtime version line, `kDataLoaded`, `loaded menu 'Ink
 | Local build (VS 2022 + cmake, Release) | **PASS**: `build\Release\Inkwell.dll` 737,280 B (720 KiB); exports `SKSEPlugin_Load/Query/Version`; version data `AddressLibrary` + `StructCompatibility::Independent`. First build ~15 min (CommonLib from source; reported, not re-measured). |
 | In game (Skyrim SE 1.7.104, Steam) | **PASS** (Inkwell.log, skse64.log): `UI::Register('InkwellSpikeA') done` (x3 menus registered), `key 24 -> show`, `key 1 -> hide` (Esc), `menuFlags=0x41D`. Creator to `LoadMovieEx` return 2-4 ms; key press to return 2-59 ms. 8-menu cap (one template slot per menu). |
 | `swf` path convention | **Finding:** `LoadMovieEx` wants a bare name and adds `Interface/` and `.swf` itself: `name='InkwellSpikeA'` -> `url='Interface/InkwellSpikeA.swf'`. A full `Interface/X.swf` returned false in an earlier run (log overwritten; reported by the spike). The `Interface/Exported/` fallback is from code reading only. The menu JSON `swf` must therefore be relative to `Interface/` without extension (or the runtime normalises). |
-| GitHub Actions workflow `.github/workflows/runtime-spike.yml` | **UNVERIFIED**: never run, not pushed. YAML parses. |
+| GitHub Actions workflow `.github/workflows/runtime-spike.yml` | **PASS (owner-reported)** on the third attempt. Run 1 (6a7986f) failed at Configure: vcpkg installed everything (~1.7 min), then CMake stopped with `Generator Visual Studio 17 2022 could not find any instance of Visual Studio`, because `windows-latest` no longer ships VS 2022. Fix (ae6687f): `CMakePresets.json` no longer names a generator, so CMake picks the installed Visual Studio. Job logs need admin rights; commit 429e416 makes the workflow print the configure/build log tail as annotations, which anyone can read. I could not read the final run status myself (API rate limit). **Not verified:** the local build with the changed preset (local VS 2022 plus a newer VS and CMake 3.31 may choose a different default generator); that the CI-built DLL loads in game. |
 
 Not explained: the `autoOpenSeconds` fallback never fired (no `scheduled` line); the first run had no key logs.
 
