@@ -31,11 +31,31 @@ jobs:
 
       - name: Configure
         working-directory: spikes/runtime-menu
-        run: cmake --preset release
+        shell: pwsh
+        run: |
+          cmake --preset release 2>&1 | Tee-Object -FilePath configure.log
+          if ($LASTEXITCODE -ne 0) {
+            # surface the log tail as annotations (readable without admin rights)
+            $t = @(Get-Content configure.log -Tail 70)
+            $t += Get-ChildItem -Recurse -Include vcpkg-manifest-install.log,issue_body.md,CMakeError.log,CMakeOutput.log -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 40 }
+            $m = ($t -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
+            Write-Host "::error title=configure log::$m"
+            exit 1
+          }
 
       - name: Build
         working-directory: spikes/runtime-menu
-        run: cmake --build --preset release
+        shell: pwsh
+        run: |
+          cmake --build --preset release 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) {
+            # surface the log tail as annotations (readable without admin rights)
+            $t = @(Get-Content build.log -Tail 70)
+            $t += Get-ChildItem -Recurse -Include vcpkg-manifest-install.log,issue_body.md,CMakeError.log,CMakeOutput.log -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 40 }
+            $m = ($t -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
+            Write-Host "::error title=build log::$m"
+            exit 1
+          }
 
       - uses: actions/upload-artifact@v4
         with:
