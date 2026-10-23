@@ -4,8 +4,7 @@
   "configurePresets": [
     {
       "name": "release",
-      "displayName": "Release (VS2022, vcpkg x64-windows-static-md)",
-      "generator": "Visual Studio 17 2022",
+      "displayName": "Release (default Visual Studio generator, vcpkg x64-windows-static-md)",
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
