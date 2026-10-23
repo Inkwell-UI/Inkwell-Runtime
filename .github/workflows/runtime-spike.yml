@@ -1,0 +1,44 @@
+name: runtime-spike
+
+on:
+  push:
+    paths: ["spikes/runtime-menu/**", ".github/workflows/runtime-spike.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      VCPKG_COMMIT: 23b8a8e7409c2d6346114a88e834165bde79a51c
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out pinned vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
+          git -C $env:VCPKG_ROOT checkout $env:VCPKG_COMMIT
+          & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+
+      - uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('spikes/runtime-menu/vcpkg.json') }}
+          restore-keys: vcpkg-${{ env.VCPKG_COMMIT }}-
+
+      - name: Configure
+        working-directory: spikes/runtime-menu
+        run: cmake --preset release
+
+      - name: Build
+        working-directory: spikes/runtime-menu
+        run: cmake --build --preset release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Inkwell-dll
+          path: spikes/runtime-menu/build/Release/Inkwell.dll
+          if-no-files-found: error
