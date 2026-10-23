@@ -4,17 +4,19 @@ SKSE plugin that registers Inkwell custom menus, bridges Papyrus, AS2 and C++, k
 
 ## Commands
 
-Not scaffolded yet. Builds run on a GitHub Actions Windows runner; list the local and CI build commands here once they exist. Every change must build in CI.
+Spike code lives in `spikes/runtime-menu/` (CMake preset, vcpkg manifest). Local build: set `VCPKG_ROOT`, then `cmake --preset release` and `cmake --build --preset release` there (the first CommonLibSSE-NG build takes about 15 minutes). CI: `.github/workflows/runtime-spike.yml` on a Windows runner; it prints the configure/build log tail as annotations. The preset names no Visual Studio generator, because runner images change. Every change must build in CI.
 
 ## Stack
 
-C++, CommonLibSSE-NG (alandtse's fork), Address Library, spdlog. One DLL for Skyrim SE, AE and GOG.
+C++, CommonLibSSE-NG (alandtse's fork, GPL-3.0-or-later), Address Library, spdlog. One DLL for Skyrim SE, AE and GOG. **`Inkwell.dll` is licensed GPL-3.0** because it links CommonLibSSE-NG; the no-paywall terms live in the editor and generated-output licenses, not here.
 
 ## Rules that are easy to break
 
 - **Names are API once public:** `Inkwell.dll`, `SKSE/Plugins/Inkwell/`, `Inkwell_API.psc`, `inkwell.*` in AS2. Keep the product name in one constant; never rename after the first public release.
 - **Backwards compatible within a major version.** Mods declare the minimum runtime version they need; a missing or too-old runtime shows an in-game message naming the requirement, never a silent failure.
 - **Config formats come from inkwell-spec:** author-owned menu JSON (`SKSE/Plugins/Inkwell/menus/*.json`) is read first, then end-user INI overrides on top. Validate against the spec's schemas; never invent fields here.
+- **`LoadMovieEx` takes a bare movie name** and adds `Interface/` and `.swf` itself. The menu JSON `swf` is relative to `Data/` including `Interface/` and `.swf`; normalize it before calling. `UI::Register` takes a context-free function pointer, so each menu needs its own template slot.
+- **`skse` is not present in a custom menu's movie.** Bridge functions (such as `_root.inkwellTrace`) are installed by the runtime after the movie loads, so frame-1 AS2 must retry until they exist.
 - **Never crash the game on bad input:** a malformed menu file, missing SWF or bad Papyrus call logs and skips that item.
 - **Dev mode is off in release builds** unless the user INI enables it. The debug WebSocket binds to localhost only and requires the session token.
 - **Hotkeys, positions, scale, theme and UI scale are user-owned (INI).** Never hard-code them.
