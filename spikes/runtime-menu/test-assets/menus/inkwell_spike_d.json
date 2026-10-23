@@ -1,0 +1,6 @@
+{
+  "name": "InkwellSpikeD",
+  "swf": "Interface/InkwellSpikeD.swf",
+  "flags": { "pausesGame": true, "cursor": true, "modal": true },
+  "trigger": { "hotkey": 37 }
+}

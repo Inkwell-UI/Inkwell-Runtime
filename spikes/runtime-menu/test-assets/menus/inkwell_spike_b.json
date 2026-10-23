@@ -1,0 +1,6 @@
+{
+  "name": "InkwellSpikeB",
+  "swf": "Interface/InkwellSpikeB.swf",
+  "flags": { "pausesGame": true, "cursor": true, "modal": true },
+  "trigger": { "hotkey": 25 }
+}

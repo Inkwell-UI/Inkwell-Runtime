@@ -1,6 +1,0 @@
-{
-  "name": "InkwellSpike",
-  "swf": "Interface/InkwellSpike.swf",
-  "flags": { "pausesGame": true, "cursor": true, "modal": true },
-  "trigger": { "hotkey": 24, "autoOpenSeconds": 8 }
-}
