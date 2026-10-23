@@ -3,7 +3,9 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <chrono>
 #include <fstream>
+#include <thread>
 
 namespace
 {
@@ -23,6 +25,7 @@ namespace
 		bool          modal{ false };
 		std::uint32_t hotkey{ 0 };  // DIK scancode, 0 = none
 		int           depth{ 3 };
+		int           autoOpenSeconds{ 0 };  // spike fallback: open this long after a save loads, 0 = off
 	};
 
 	std::vector<MenuDef> g_defs;
@@ -144,7 +147,7 @@ namespace
 					d.cursor = f->value("cursor", false);
 					d.modal = f->value("modal", false);
 				}
-				if (const auto t = j.find("trigger"); t != j.end()) d.hotkey = t->value("hotkey", 0u);
+				if (const auto t = j.find("trigger"); t != j.end()) { d.hotkey = t->value("hotkey", 0u); d.autoOpenSeconds = t->value("autoOpenSeconds", 0); }
 				d.depth = j.value("depth", 3);  // spec lists depth as a menu field; optional here
 				if (g_defs.size() >= kMaxMenus) {
 					log::warn("{}: skipped, spike supports {} menus", file, kMaxMenus);
