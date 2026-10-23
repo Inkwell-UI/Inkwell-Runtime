@@ -72,7 +72,12 @@ namespace
 				log::error("[{}] BSScaleformManager singleton is null", _name);
 				return;
 			}
-			const bool ok = sm->LoadMovieEx(this, a_def.swf, [this](RE::GFxMovieDef* a_def2) {
+			// LoadMovieEx prepends "Interface/" (then "Interface/Exported/") and appends ".swf" itself
+			std::string movieName = a_def.swf;
+			if (movieName.size() > 10 && _strnicmp(movieName.c_str(), "Interface/", 10) == 0) movieName.erase(0, 10);
+			if (movieName.size() > 4 && _stricmp(movieName.c_str() + movieName.size() - 4, ".swf") == 0) movieName.resize(movieName.size() - 4);
+			log::info("[{}] LoadMovieEx name='{}'", _name, movieName);
+			const bool ok = sm->LoadMovieEx(this, movieName, [this](RE::GFxMovieDef* a_def2) {
 				log::info("[{}] LoadMovieEx callback: movieDef={} url='{}'", _name, static_cast<const void*>(a_def2), a_def2 ? a_def2->GetFileURL() : "");
 			});
 			log::info("[{}] LoadMovieEx returned {}; uiMovie={}", _name, ok, static_cast<const void*>(uiMovie.get()));
