@@ -28,6 +28,7 @@ Can a minimal CommonLibSSE-NG SKSE plugin register and open one custom menu load
 | Triplet | `x64-windows-static-md` |
 | Compiler | MSVC 19.44 (VS 2022), C++23 |
 | Address Library | the user needs "Address Library for SKSE Plugins" v13+ for 1.7.99/1.7.104 |
+| Tested game | Skyrim SE (Steam) `SkyrimSE.exe` 1.7.104.0 with SKSE 1.7.104; the only game version tested so far (1.5.97, GOG and other AE builds untested) |
 
 **1.7.104 support:** `v13.1.0` declares `RUNTIME_SSE_1_7_104` (`include/SKSE/Version.h`) as the latest AE runtime. Declared in source; **verified in game on 1.7.104** (`Inkwell spike loaded; Skyrim runtime 1-7-104-0`, skse64.log `plugin Inkwell.dll ... loaded correctly`). 1.5.97, GOG and other AE builds untested.
 
