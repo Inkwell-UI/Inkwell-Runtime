@@ -13,6 +13,7 @@
 #include <deque>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 namespace inkwell::devmode
 {
@@ -113,7 +114,15 @@ namespace inkwell::devmode
 
 		void Step();
 
-		void Requeue() { SKSE::GetTaskInterface()->AddTask([] { Step(); }); }
+		// A task that re-adds itself runs again inside the same frame, so the engine never gets to process the queued kHide (seen in game: the close
+		// came 3 s late, right after the timeout). Wait a few frames on a helper thread, then hop back onto the game thread.
+		void Requeue()
+		{
+			std::thread([] {
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				SKSE::GetTaskInterface()->AddTask([] { Step(); });
+			}).detach();
+		}
 
 		void Finish(Job& j)
 		{
