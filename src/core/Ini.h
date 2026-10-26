@@ -60,6 +60,7 @@ namespace inkwell
 		double             uiScale{ 1.0 };
 		int                offsetX{ 0 }, offsetY{ 0 };
 		std::string        theme;
+		bool operator==(const EffectiveMenu&) const = default;
 	};
 
 	/// Precedence: built-in default < author JSON < user INI. `openKey` 0 in the INI removes the hotkey.

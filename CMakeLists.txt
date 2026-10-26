@@ -16,14 +16,15 @@ set(INKWELL_DEFAULT_LOG_LEVEL "trace" CACHE STRING "Log level used when Inkwell.
 find_package(nlohmann_json CONFIG REQUIRED)
 
 # ---- core: pure C++ (menu JSON, INI, versions, tables). No engine headers, so the tests build in seconds. ----
-add_library(InkwellCore STATIC src/core/MenuConfig.cpp src/core/Ini.cpp src/core/Saved.cpp)
+add_library(InkwellCore STATIC src/core/MenuConfig.cpp src/core/Ini.cpp src/core/Saved.cpp
+  src/core/Crypto.cpp src/core/WebSocket.cpp src/core/DevProtocol.cpp src/core/DevServer.cpp src/core/DirWatcher.cpp src/core/MenuScan.cpp)
 target_include_directories(InkwellCore PUBLIC src)
 target_compile_definitions(InkwellCore PUBLIC
   INKWELL_PRODUCT_NAME="${INKWELL_PRODUCT_NAME}"
   INKWELL_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
   INKWELL_VERSION_MINOR=${PROJECT_VERSION_MINOR}
   INKWELL_VERSION_PATCH=${PROJECT_VERSION_PATCH})
-target_link_libraries(InkwellCore PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(InkwellCore PUBLIC nlohmann_json::nlohmann_json ws2_32 bcrypt)
 if(MSVC)
   target_compile_options(InkwellCore PUBLIC /utf-8 /W4)
 endif()
@@ -33,6 +34,10 @@ if(INKWELL_BUILD_TESTS)
   add_executable(InkwellTests tests/core_tests.cpp)
   target_link_libraries(InkwellTests PRIVATE InkwellCore)
   add_test(NAME core COMMAND InkwellTests ${CMAKE_CURRENT_SOURCE_DIR}/test-vectors)
+  # dev server (S6): unit tests plus a loopback end-to-end run, no game needed (--serve keeps a fake host up for scripts/dev-client.mjs)
+  add_executable(InkwellDevTests tests/dev_tests.cpp)
+  target_link_libraries(InkwellDevTests PRIVATE InkwellCore)
+  add_test(NAME dev COMMAND InkwellDevTests ${CMAKE_CURRENT_SOURCE_DIR}/test-assets)
 endif()
 
 # ---- the SKSE plugin ----
@@ -65,7 +70,8 @@ if(INKWELL_BUILD_PLUGIN)
       src/plugin/Input.cpp
       src/plugin/Papyrus.cpp
       src/plugin/Messaging.cpp
-      src/plugin/Saved.cpp)
+      src/plugin/Saved.cpp
+      src/plugin/Dev.cpp)
 
   target_include_directories(${INKWELL_PRODUCT_NAME} PRIVATE src include)
   target_compile_definitions(${INKWELL_PRODUCT_NAME} PRIVATE

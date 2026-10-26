@@ -32,6 +32,7 @@ namespace inkwell
 		std::optional<int> hotkey;  // JSON triggers.hotkey, DirectInput scan code
 		bool         papyrus{ true };
 		std::string  modEvent;  // empty = none
+		bool operator==(const MenuDef&) const = default;
 	};
 
 	struct MenuParseResult
