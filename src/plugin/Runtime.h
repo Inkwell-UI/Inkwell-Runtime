@@ -3,6 +3,7 @@
 #include "core/Ini.h"
 #include "core/MenuConfig.h"
 #include "core/Registry.h"
+#include "core/Saved.h"
 #include "core/Version.h"
 
 #include <atomic>
@@ -86,6 +87,7 @@ namespace inkwell
 		RuntimeConfig config;
 		DataStore     data;
 		FunctionTable functions;
+		SavedStore    saved;  // S5; filled from / written to the SKSE co-save (Saved.cpp)
 		std::atomic<InputDevice> lastDevice{ InputDevice::kKeyboardMouse };
 
 	private:

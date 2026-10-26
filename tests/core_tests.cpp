@@ -3,6 +3,7 @@
 #include "core/Ini.h"
 #include "core/MenuConfig.h"
 #include "core/Registry.h"
+#include "core/Saved.h"
 #include "core/Version.h"
 
 #include <nlohmann/json.hpp>
@@ -293,6 +294,124 @@ static void TestTables()
 	CHECK(ft.Size() == 2);
 }
 
+// ---- saved state (S5) -------------------------------------------------------------------------------------------
+static void TestSaved()
+{
+	SavedStore st;
+	CHECK(st.Set("m", "b", true) == SetResult::kOk);
+	CHECK(st.Set("m", "n", 2.5) == SetResult::kOk);
+	CHECK(st.Set("m", "s", std::string("héllo")) == SetResult::kOk);
+	CHECK(st.Set("m", "", true) == SetResult::kBadKey);
+	CHECK(st.Set("m", std::string(65, 'k'), true) == SetResult::kBadKey);
+	CHECK(st.Set("m", std::string(64, 'k'), true) == SetResult::kOk);
+	CHECK(!st.Get("other", "b").has_value() && !st.Get("m", "nope").has_value());
+	CHECK(std::get<double>(*st.Get("m", "n")) == 2.5);
+	st.Set("m", "n", true);  // changing the type replaces the value
+	CHECK(st.Get("m", "n")->index() == 0);
+
+	// strings: cut at 4096 bytes, never inside a UTF-8 sequence
+	std::string longs(kSavedStringBytes - 1, 'a');
+	longs += "éé";  // two 2-byte chars straddling the limit
+	CHECK(st.Set("m", "long", longs) == SetResult::kTruncated);
+	const auto cut = std::get<std::string>(*st.Get("m", "long"));
+	CHECK(cut.size() == kSavedStringBytes - 1);
+
+	// 256 variables per menu
+	SavedStore full;
+	for (std::size_t i = 0; i < kSavedVariablesPerMenu; ++i) CHECK(full.Set("m", "v" + std::to_string(i), true) == SetResult::kOk);
+	CHECK(full.Set("m", "extra", true) == SetResult::kTooMany);
+	CHECK(full.Set("m", "v0", false) == SetResult::kOk);  // existing names can still change
+	CHECK(full.Set("other", "extra", true) == SetResult::kOk);  // limit is per menu
+
+	// round trip, with the exact byte layout of S5 rule 2
+	SavedVars v;
+	v["flag"] = true;
+	v["pi"] = 3.14159;
+	v["txt"] = std::string("hi");
+	const auto bytes = EncodeSavedRecord("menu", v);
+	const std::uint8_t expectedHead[] = { 4, 0, 0, 0, 'm', 'e', 'n', 'u', 3, 0, 0, 0, 4, 0, 0, 0, 'f', 'l', 'a', 'g', 0, 1 };
+	CHECK(bytes.size() > sizeof(expectedHead) && std::equal(std::begin(expectedHead), std::end(expectedHead), bytes.begin()));
+	// the Number of "pi": u32 2, "pi", type 1, then f64 little-endian
+	const std::uint8_t pi[] = { 2, 0, 0, 0, 'p', 'i', 1, 0x6E, 0x86, 0x1B, 0xF0, 0xF9, 0x21, 0x09, 0x40 };
+	CHECK(std::search(bytes.begin(), bytes.end(), std::begin(pi), std::end(pi)) != bytes.end());
+	const std::uint8_t txt[] = { 3, 0, 0, 0, 't', 'x', 't', 2, 2, 0, 0, 0, 'h', 'i' };
+	CHECK(std::equal(std::begin(txt), std::end(txt), bytes.end() - sizeof(txt)));
+	std::string err;
+	auto        back = DecodeSavedRecord(bytes.data(), bytes.size(), err);
+	CHECK(back.has_value() && err.empty());
+	if (back) {
+		CHECK(back->menu == "menu" && back->vars == v);
+	}
+	// empty record and empty string value
+	SavedVars e;
+	e["e"] = std::string();
+	const auto eb = EncodeSavedRecord("x", e);
+	auto       ebd = DecodeSavedRecord(eb.data(), eb.size(), err);
+	CHECK(ebd && ebd->vars == e);
+
+	// every truncation of a valid record is rejected without crashing
+	for (std::size_t n = 0; n < bytes.size(); ++n) {
+		err.clear();
+		CHECK_MSG(!DecodeSavedRecord(bytes.data(), n, err).has_value(), "truncated to " + std::to_string(n));
+		CHECK(!err.empty());
+	}
+	// trailing garbage is tolerated with a note
+	auto padded = bytes;
+	padded.push_back(0xFF);
+	err.clear();
+	CHECK(DecodeSavedRecord(padded.data(), padded.size(), err).has_value() && !err.empty());
+	// unknown type byte
+	auto bad = bytes;
+	bad[20] = 9;  // the type byte of "flag"
+	CHECK(!DecodeSavedRecord(bad.data(), bad.size(), err).has_value() && err.find("type") != std::string::npos);
+	// absurd lengths and counts must not allocate or overrun
+	const std::uint8_t hugeName[] = { 0xFF, 0xFF, 0xFF, 0xFF, 'a' };
+	CHECK(!DecodeSavedRecord(hugeName, sizeof(hugeName), err).has_value());
+	const std::uint8_t hugeCount[] = { 1, 0, 0, 0, 'm', 0xFF, 0xFF, 0xFF, 0xFF };
+	CHECK(!DecodeSavedRecord(hugeCount, sizeof(hugeCount), err).has_value());
+	const std::uint8_t hugeStr[] = { 1, 0, 0, 0, 'm', 1, 0, 0, 0, 1, 0, 0, 0, 'k', 2, 0xFF, 0xFF, 0xFF, 0x7F };
+	CHECK(!DecodeSavedRecord(hugeStr, sizeof(hugeStr), err).has_value());
+	const std::uint8_t emptyKey[] = { 1, 0, 0, 0, 'm', 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	CHECK(!DecodeSavedRecord(emptyKey, sizeof(emptyKey), err).has_value());
+	CHECK(!DecodeSavedRecord(nullptr, 0, err).has_value());
+	// random bytes never crash (deterministic LCG)
+	std::uint32_t seed = 12345;
+	for (int i = 0; i < 2000; ++i) {
+		std::vector<std::uint8_t> junk(static_cast<std::size_t>(seed % 80));
+		for (auto& b : junk) {
+			seed = seed * 1664525u + 1013904223u;
+			b = static_cast<std::uint8_t>(seed >> 24);
+		}
+		seed = seed * 1664525u + 1013904223u;
+		(void)DecodeSavedRecord(junk.data(), junk.size(), err);
+	}
+	// flipping every byte of a valid record never crashes either
+	for (std::size_t i = 0; i < bytes.size(); ++i) {
+		auto m = bytes;
+		m[i] ^= 0xFF;
+		(void)DecodeSavedRecord(m.data(), m.size(), err);
+	}
+
+	// version handling lives in the plugin's load loop (a record version above 1 is never decoded); the contract is the constants
+	static_assert(kCosaveUniqueId == 0x494E4B57 && kCosaveRecordSaved == 0x53564152 && kCosaveRecordVersion == 1);
+	static_assert(kSavedRecordMaxBytes < 2 * 1024 * 1024);
+
+	// store <-> record: save then revert then load
+	SavedStore a;
+	a.Set("menu_a", "x", 1.0);
+	a.Set("menu_b", "y", std::string("z"));
+	std::vector<std::vector<std::uint8_t>> file;
+	for (const auto& [m, vars] : a.Snapshot()) file.push_back(EncodeSavedRecord(m, vars));
+	a.Clear();
+	CHECK(!a.Get("menu_a", "x").has_value());
+	for (const auto& r : file) {
+		auto d = DecodeSavedRecord(r.data(), r.size(), err);
+		CHECK(d.has_value());
+		if (d) a.Replace(d->menu, d->vars);
+	}
+	CHECK(std::get<double>(*a.Get("menu_a", "x")) == 1.0 && std::get<std::string>(*a.Get("menu_b", "y")) == "z");
+}
+
 int main(int argc, char** argv)
 {
 	const std::filesystem::path vectors = argc > 1 ? argv[1] : "test-vectors";
@@ -302,6 +421,7 @@ int main(int argc, char** argv)
 	TestIniVectors(vectors / "ini");
 	TestIniMisc();
 	TestTables();
+	TestSaved();
 	std::cout << g_checks << " checks, " << g_failed << " failed\n";
 	return g_failed == 0 ? 0 : 1;
 }

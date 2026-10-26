@@ -5,6 +5,7 @@
 #include "Messaging.h"
 #include "Papyrus.h"
 #include "Runtime.h"
+#include "Saved.h"
 
 namespace
 {
@@ -60,6 +61,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 	try {
 		Runtime::Get().LoadRuntimeConfig();
 		InitMessaging();
+		InitSavedState();
 		const bool papyrus = SKSE::GetPapyrusInterface()->Register(RegisterPapyrus);
 		log::info("Papyrus registration callback queued: {}", papyrus);
 		SKSE::GetMessagingInterface()->RegisterListener(OnSKSEMessage);

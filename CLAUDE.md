@@ -20,6 +20,6 @@ C++, CommonLibSSE-NG (alandtse's fork, GPL-3.0-or-later), Address Library, spdlo
 - **Never crash the game on bad input:** a malformed menu file, missing SWF or bad Papyrus call logs and skips that item.
 - **Dev mode is off in release builds** unless the user INI enables it. The debug WebSocket binds to localhost only and requires the session token.
 - **Hotkeys, positions, scale, theme and UI scale are user-owned (INI).** Never hard-code them.
-- **Saved state goes through SKSE co-save,** versioned so older saves still load.
+- **Saved state goes through SKSE co-save,** versioned so older saves still load: unique id `INKW`, one `SVAR` record per menu, layout and limits in S5 (`src/core/Saved.*`, constants mirror Spec `COSAVE_*`/`SAVED_LIMITS`). A record version the runtime does not know is skipped and logged, never fatal. A change to the byte layout needs a new record version (readers keep decoding the old one).
 - **Log generously with spdlog.** In-game testing is done by hand, so each run must tell as much as possible.
 - **Testing:** Claude can't run Skyrim. Keep a small test menu and step-by-step test notes in the repo for the author to run.

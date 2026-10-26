@@ -1,4 +1,4 @@
-# In-game test notes: Inkwell Runtime 0.3, phase 2 (runtime core)
+# In-game test notes: Inkwell Runtime 0.3, phases 2 and 5 (runtime core, saved state, events)
 
 For the owner. Claude cannot run Skyrim, so nothing below has been seen in game yet. Each step says what you should see; the lines in `Inkwell.log` are the evidence. Please send back `Inkwell.log`, `skse64.log` and the answers to the "Report" questions at the end.
 
@@ -117,6 +117,42 @@ Copy `test-assets/ini/Inkwell.ini` to `SKSE/Plugins/Inkwell/Inkwell.ini`. Expect
 - `RegisterListener(nullptr, ...)` (listen to messages from every plugin, used for `kGetInterface`). If SKSE rejects a null sender the log says `listener ... registered: false`; the broadcast `kInterfaceReady` still works.
 - Sub-path SWF names (`Interface/Inkwell/<modId>/<Swf>.swf` giving `LoadMovieEx 'Inkwell/<modId>/<Swf>'`, O2): the missing-SWF menu only proves failure handling; a real sub-path SWF is tested in the phase 4 slice.
 - AE and GOG.
+
+## 9. Saved state (S5, phase 5)
+
+All steps are log-driven. They need a menu SWF that calls `inkwell.getSaved` / `inkwell.setSaved`: build one in the Editor with a `Saved` variable (Editor branch `feat/runtime-nodes`, menu graph, Set Variable / Toggle / Counter on that variable) and deploy it with a menu JSON. The spike SWFs never call them. Nothing here has been seen in game. Use a variable `counter` (Number, default 0) in a menu `Foo`.
+
+| Step | Expected in `Inkwell.log` |
+|---|---|
+| Plugin load | `co-save: callbacks registered (unique id 0x494E4B57, record SVAR v1)` |
+| New game (or first load of a save without Inkwell data), open `Foo` | `co-save: revert, saved variables cleared`, then `getSaved('counter'): nothing stored, default`, the menu shows 0 |
+| Click the counter to 3, close the menu | `setSaved('counter') stored (written to the co-save at the next game save)` for each change |
+| Save the game (any save, quick or manual) | `co-save: wrote SVAR v1 for 'foo': 1 variable(s), NN bytes`, `co-save: saved 1 menu record(s), 0 failed`. The record is in `<save name>.skse` next to the `.ess` |
+| Load that save (from the main menu or in game) | `co-save: revert, saved variables cleared`, `co-save: loaded 'foo': 1 variable(s)`, `co-save: load done, 1 menu record(s) loaded, 0 skipped`. Open `Foo`: `getSaved('counter') -> 3`, the menu shows 3 |
+| Load an older save made before the counter existed (or start a new game) | `revert`, no `loaded` line, `nothing stored, default`: the menu shows 0 again. A value from the previous session must **not** leak into it |
+| Change the counter to 5 but do not save, load the save | the menu shows 3 (the unsaved value is gone) |
+| Uninstall `Inkwell.dll`, load, save, reinstall, load that new save | the game loads without errors; the saved value is gone (SKSE drops the records without the plugin); with the DLL back the menu shows 0 |
+| Optional: change the variable's type in the editor (Number to String), redeploy, open `Foo` after loading the save with 3 | `getSaved('counter'): stored value has type 1 but the default has type 2; returning the default` (warn) |
+
+Not covered in game: a record with a higher version (the load callback logs `SVAR record version N is not understood ... skipped` and carries on; the byte-level cases are unit-tested). Stale values of variables a newer build no longer declares stay in the record (O8). Papyrus cannot read saved variables in 0.3.
+
+## 10. Mod events
+
+`sendModEvent` from a menu graph and `onModEvent` into an open menu need no Papyrus and no console.
+
+1. Build a menu `Sender` in the Editor whose graph has a button with the **Send Mod Event** node (name `InkwellTest_Open`, strArg `hi`, numArg `7`), hotkey on a free key.
+2. Open `Sender` and press the button. Expected: `[AS2] ... sendModEvent` is not logged at info; look for `send mod event 'InkwellTest_Open' strArg='hi' numArg=7` (debug), then the runtime's own sink: `mod event 'InkwellTest_Open' -> open 'InkwellTest_A'`, and menu A opens (its JSON has `triggers.modEvent`). That shows the event went out on the SKSE mod event source and reached a receiver.
+3. A menu with an **On Mod Event** node for `InkwellTest_Open` that is open when the event is sent: `[Foo] onModEvent('InkwellTest_Open')` (debug) and the node's output (a text change). The sender itself receives its own event, so `Sender` can show it too. Events sent while a menu is closed are dropped: no `onModEvent` line for it.
+4. `Inkwell_MenuOpened` / `Inkwell_MenuClosed` are sent on every open and close (`send mod event 'Inkwell_MenuOpened' strArg='Foo' numArg=0`), so an open menu with an On Mod Event node for them fires for *other* menus opening.
+5. `Inkwell_API.SetString/SetNumber/SetBool` and `RegisterForModEvent` receivers need an attached quest script (see section 3); not tested here.
+
+Runtime messages (`onMessage`) come from the same sources as the replay in section 2: `replaying N stored value(s)` and `[Foo] onMessage('<key>')`.
+
+## 11. getSetting, getInputDevice, callRuntime
+
+- `getSetting(section, key, default)` (S4.2 has three arguments) reads the mod INI that holds the menu's section, any section, keys case-insensitive, and always returns a String (the generated code converts). `InkwellTest.ini` has `[Custom]` with `Greeting=hello from the ini`, `Count=3`, `Enabled=true`. From a Get Setting node: `getSetting('Custom', 'Greeting', 'none') -> 'hello from the ini'`; a missing key or section logs `... -> 'none' (default)`; a menu whose mod has no INI always gets the default. Edit the INI, reopen the menu, the new value appears (the INI is read at game start, so restart the game; hot reload is phase 6).
+- `getInputDevice()` returns `keyboardMouse` or `gamepad` from the last input event. Log: none by default (the call is not logged); the node's output is the evidence. Press a gamepad button, reopen or re-trigger, expect `gamepad`.
+- `callRuntime(name, arg)` (one argument, S4.2): `inkwell.version` -> `0.3.0`, `inkwell.ismenuopen` with a menu name -> `1`/`0`, `inkwell.isdevmode` -> `0`; anything else logs `callRuntime('x'): unknown function, returning ""` (warn) and returns an empty string. Functions registered by other SKSE plugins (`RegisterFunction`) need such a plugin; none exists yet.
 
 ## Report
 

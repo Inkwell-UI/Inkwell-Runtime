@@ -165,14 +165,58 @@ namespace inkwell
 				case Fn::kGetInputDevice:
 					RetString(p, rt.lastDevice.load() == InputDevice::kGamepad ? "gamepad" : "keyboardMouse");
 					break;
-				case Fn::kGetSaved:
-					// Saved scope (S5) is a later phase: the stored value is always absent, so the default comes back.
-					log::debug("[AS2] [{}] getSaved('{}'): saved state is not implemented in this build; returning the default", menu, Str(p, 0));
-					if (p.retVal && p.argCount >= 2) *p.retVal = p.args[1];
+				case Fn::kGetSaved: {
+					// S5 rule 4: typed by the default's type; a stored value of another type gives the default back and a warning
+					const auto name = Str(p, 0);
+					const auto key = MenuNameKey(menu);
+					const auto stored = rt.saved.Get(key, name);
+					const bool hasDefault = p.argCount >= 2;
+					const auto& d = hasDefault ? p.args[1] : RE::GFxValue();
+					const int  want = d.IsBool() ? 0 : d.IsNumber() ? 1 : d.IsString() ? 2 : -1;  // same numbers as the record type byte
+					const auto giveDefault = [&] {
+						if (p.retVal && hasDefault) *p.retVal = p.args[1];
+					};
+					if (!stored) {
+						log::debug("[AS2] [{}] getSaved('{}'): nothing stored, default", menu, name);
+						giveDefault();
+					} else if (want >= 0 && static_cast<int>(stored->index()) != want) {
+						log::warn("[AS2] [{}] getSaved('{}'): stored value has type {} but the default has type {}; returning the default", menu, name, stored->index(), want);
+						giveDefault();
+					} else if (const auto* b = std::get_if<bool>(&*stored)) {
+						RetBool(p, *b);
+						log::debug("[AS2] [{}] getSaved('{}') -> {}", menu, name, *b);
+					} else if (const auto* n = std::get_if<double>(&*stored)) {
+						if (p.retVal) p.retVal->SetNumber(*n);
+						log::debug("[AS2] [{}] getSaved('{}') -> {}", menu, name, *n);
+					} else {
+						RetString(p, std::get<std::string>(*stored));
+						log::debug("[AS2] [{}] getSaved('{}') -> string of {} byte(s)", menu, name, std::get<std::string>(*stored).size());
+					}
 					break;
-				case Fn::kSetSaved:
-					log::debug("[AS2] [{}] setSaved('{}'): saved state is not implemented in this build; ignored", menu, Str(p, 0));
+				}
+				case Fn::kSetSaved: {
+					const auto name = Str(p, 0);
+					if (p.argCount < 2) {
+						log::warn("[AS2] [{}] setSaved('{}'): no value; ignored", menu, name);
+						break;
+					}
+					const auto& v = p.args[1];
+					SavedValue  value;
+					if (v.IsBool()) value = v.GetBool();
+					else if (v.IsNumber()) value = v.GetNumber();
+					else if (v.IsString()) value = std::string(v.GetString());
+					else {
+						log::warn("[AS2] [{}] setSaved('{}'): only Boolean, Number and String can be saved; ignored", menu, name);
+						break;
+					}
+					switch (rt.saved.Set(MenuNameKey(menu), name, std::move(value))) {
+					case SetResult::kOk: log::debug("[AS2] [{}] setSaved('{}') stored (written to the co-save at the next game save)", menu, name); break;
+					case SetResult::kTruncated: log::warn("[AS2] [{}] setSaved('{}'): string longer than {} bytes, truncated", menu, name, kSavedStringBytes); break;
+					case SetResult::kBadKey: log::warn("[AS2] [{}] setSaved: name must be 1..{} bytes; ignored", menu, kSavedKeyBytes); break;
+					case SetResult::kTooMany: log::warn("[AS2] [{}] setSaved('{}'): more than {} saved variables in this menu; ignored", menu, name, kSavedVariablesPerMenu); break;
+					}
 					break;
+				}
 				case Fn::kWatch:
 				case Fn::kPin:
 					break;  // dev mode only; no-ops otherwise (S6)

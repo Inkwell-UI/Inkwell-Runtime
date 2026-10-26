@@ -2,9 +2,9 @@
 
 The SKSE plugin (`Inkwell.dll`) behind Inkwell custom menus: it registers menus described by JSON files, opens them from a hotkey, a Papyrus call or a mod event, bridges Papyrus, AS2 and C++, and logs everything to `Documents/My Games/Skyrim Special Edition/SKSE/Inkwell.log`.
 
-Status: milestone 0.3, phase 2 (runtime core). Built against `Inkwell Design Spec.md` (Inkwell Runtime) and `SPEC-CHANGES.md` section S. Not yet verified in game; see `docs/test-notes.md` for the steps and the list of what is unverified.
+Status: milestone 0.3, phases 2 and 5 (runtime core, saved state, events). Built against `Inkwell Design Spec.md` (Inkwell Runtime) and `SPEC-CHANGES.md` section S. Not yet verified in game; see `docs/test-notes.md` for the steps and the list of what is unverified.
 
-## What is in this phase
+## What is in these phases
 
 | Area | State |
 |---|---|
@@ -13,15 +13,16 @@ Status: milestone 0.3, phase 2 (runtime core). Built against `Inkwell Design Spe
 | `InkwellMenu`: flags, depth, input context, `LoadMovieEx` with the normalized bare name, open/close | done |
 | Triggers: hotkey (JSON or INI `OpenKey`), Esc, Papyrus, mod event | done |
 | Papyrus API `Inkwell_API.psc` | done except `IsDevMode` (always false) |
-| AS2 bridge `_root.inkwell` | done except `getSaved`/`setSaved` (return the default / ignore) and `watch`/`pin` (no-ops) |
+| AS2 bridge `_root.inkwell` | done except `watch`/`pin` (no-ops until dev mode) |
 | SKSE messaging `InkwellAPI.h` (interface, `RegisterFunction`, menu messages) | done |
-| Saved variables (co-save), dev mode (WebSocket, hot reload), missing-runtime ESP, UI scale glue | later phases |
+| Saved variables: in-memory store, SKSE co-save `INKW`/`SVAR` v1 (S5), `getSaved`/`setSaved`; unknown record versions are skipped and logged | done (not seen in game) |
+| Dev mode (WebSocket, hot reload), missing-runtime ESP, UI scale glue | later phases |
 
 ## Layout
 
 ```
 CMakeLists.txt, CMakePresets.json, vcpkg.json   build (product name in one place: INKWELL_PRODUCT_NAME in CMakeLists.txt)
-src/core/        pure C++ (no engine): versions, menu JSON validation, INI parser, small tables. Unit-tested.
+src/core/        pure C++ (no engine): versions, menu JSON validation, INI parser, saved-variable store and co-save record codec, small tables. Unit-tested.
 src/plugin/      the SKSE plugin: Runtime (registry), Menu (IMenu), Bridge (AS2), Input, Papyrus, Messaging, main
 include/InkwellAPI.h   C interface for other SKSE plugins (MIT)
 papyrus/Source/Scripts/Inkwell_API.psc   the Papyrus API (ship it with the runtime; compile it with your Papyrus compiler)

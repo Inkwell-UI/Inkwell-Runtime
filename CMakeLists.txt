@@ -16,7 +16,7 @@ set(INKWELL_DEFAULT_LOG_LEVEL "trace" CACHE STRING "Log level used when Inkwell.
 find_package(nlohmann_json CONFIG REQUIRED)
 
 # ---- core: pure C++ (menu JSON, INI, versions, tables). No engine headers, so the tests build in seconds. ----
-add_library(InkwellCore STATIC src/core/MenuConfig.cpp src/core/Ini.cpp)
+add_library(InkwellCore STATIC src/core/MenuConfig.cpp src/core/Ini.cpp src/core/Saved.cpp)
 target_include_directories(InkwellCore PUBLIC src)
 target_compile_definitions(InkwellCore PUBLIC
   INKWELL_PRODUCT_NAME="${INKWELL_PRODUCT_NAME}"
@@ -64,7 +64,8 @@ if(INKWELL_BUILD_PLUGIN)
       src/plugin/Bridge.cpp
       src/plugin/Input.cpp
       src/plugin/Papyrus.cpp
-      src/plugin/Messaging.cpp)
+      src/plugin/Messaging.cpp
+      src/plugin/Saved.cpp)
 
   target_include_directories(${INKWELL_PRODUCT_NAME} PRIVATE src include)
   target_compile_definitions(${INKWELL_PRODUCT_NAME} PRIVATE
