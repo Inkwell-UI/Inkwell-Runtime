@@ -1,0 +1,76 @@
+{
+  "kind": "mod",
+  "ini": {
+    "menus": {
+      "MyMod_Wheel": {
+        "uiScale": 1.5,
+        "theme": "dark"
+      },
+      "MyMod_Two": {}
+    },
+    "widgets": {}
+  },
+  "problems": [],
+  "resolve": [
+    {
+      "menu": "MyMod_Wheel",
+      "effective": {
+        "uiScale": 1.5,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": "dark"
+      }
+    },
+    {
+      "menu": "MyMod_Wheel",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1.5,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": "dark"
+      }
+    },
+    {
+      "menu": "MyMod_Two",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "MyMod_Two",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}

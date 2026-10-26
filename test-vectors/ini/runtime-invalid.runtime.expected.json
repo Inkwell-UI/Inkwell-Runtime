@@ -1,0 +1,56 @@
+{
+  "kind": "runtime",
+  "ini": {
+    "menus": {},
+    "widgets": {}
+  },
+  "problems": [
+    {
+      "line": 2,
+      "section": "Runtime",
+      "key": "LogLevel"
+    },
+    {
+      "line": 4,
+      "section": "Dev",
+      "key": "DevMode"
+    },
+    {
+      "line": 5,
+      "section": "Dev",
+      "key": "Port"
+    },
+    {
+      "line": 6,
+      "section": "Dev",
+      "key": "Token"
+    },
+    {
+      "line": 7,
+      "section": "Dev",
+      "key": "Watch"
+    }
+  ],
+  "resolve": [
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}

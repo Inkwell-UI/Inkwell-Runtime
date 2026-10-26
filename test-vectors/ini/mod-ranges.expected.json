@@ -1,0 +1,201 @@
+{
+  "kind": "mod",
+  "ini": {
+    "menus": {
+      "A": {
+        "openKey": 0,
+        "uiScale": 0.5,
+        "offsetX": 960
+      },
+      "B": {
+        "openKey": 255,
+        "uiScale": 0.75,
+        "offsetX": 10,
+        "offsetY": -540
+      },
+      "C": {
+        "uiScale": 2
+      },
+      "D": {},
+      "E": {
+        "uiScale": 2,
+        "theme": "second"
+      }
+    },
+    "widgets": {}
+  },
+  "problems": [
+    {
+      "line": 3,
+      "section": "Menu.A",
+      "key": "UIScale"
+    },
+    {
+      "line": 5,
+      "section": "Menu.A",
+      "key": "OffsetY"
+    },
+    {
+      "line": 13,
+      "section": "Menu.C",
+      "key": "OpenKey"
+    },
+    {
+      "line": 15,
+      "section": "Menu.C",
+      "key": "OffsetX"
+    },
+    {
+      "line": 16,
+      "section": "Menu.C",
+      "key": "OffsetY"
+    },
+    {
+      "line": 18,
+      "section": "Menu.D",
+      "key": "OpenKey"
+    },
+    {
+      "line": 19,
+      "section": "Menu.D",
+      "key": "UIScale"
+    },
+    {
+      "line": 20,
+      "section": "Menu.D",
+      "key": "UIScale"
+    },
+    {
+      "line": 21,
+      "section": "Menu.D",
+      "key": "OffsetX"
+    },
+    {
+      "line": 23,
+      "section": "Menu.E",
+      "key": "UIScale"
+    }
+  ],
+  "resolve": [
+    {
+      "menu": "A",
+      "effective": {
+        "uiScale": 0.5,
+        "offsetX": 960,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "A",
+      "jsonHotkey": 37,
+      "effective": {
+        "uiScale": 0.5,
+        "offsetX": 960,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "B",
+      "effective": {
+        "openKey": 255,
+        "uiScale": 0.75,
+        "offsetX": 10,
+        "offsetY": -540,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "B",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 255,
+        "uiScale": 0.75,
+        "offsetX": 10,
+        "offsetY": -540,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "C",
+      "effective": {
+        "uiScale": 2,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "C",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 2,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "D",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "D",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "E",
+      "effective": {
+        "uiScale": 2,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": "second"
+      }
+    },
+    {
+      "menu": "E",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 2,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": "second"
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}

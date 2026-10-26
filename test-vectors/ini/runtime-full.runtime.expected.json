@@ -1,0 +1,64 @@
+{
+  "kind": "runtime",
+  "ini": {
+    "menus": {
+      "A": {
+        "openKey": 44
+      }
+    },
+    "widgets": {},
+    "runtime": {
+      "logLevel": "trace"
+    },
+    "dev": {
+      "devMode": true,
+      "port": 1024,
+      "token": "abababababababababababababababababababababababababababababababab",
+      "watch": false
+    }
+  },
+  "problems": [],
+  "resolve": [
+    {
+      "menu": "A",
+      "effective": {
+        "openKey": 44,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "A",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 44,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}

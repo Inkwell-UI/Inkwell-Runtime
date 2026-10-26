@@ -1,0 +1,30 @@
+{
+  "kind": "mod",
+  "ini": {
+    "menus": {},
+    "widgets": {}
+  },
+  "problems": [],
+  "resolve": [
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}

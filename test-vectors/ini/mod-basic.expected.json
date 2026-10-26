@@ -1,0 +1,113 @@
+{
+  "kind": "mod",
+  "ini": {
+    "menus": {
+      "MyMod_Wheel": {
+        "openKey": 39,
+        "uiScale": 1.25,
+        "offsetX": -20,
+        "theme": "dark",
+        "offsetY": 5
+      },
+      "Other": {
+        "uiScale": 2
+      }
+    },
+    "widgets": {
+      "Hud": {
+        "scale": 0.5,
+        "offsetX": 3
+      }
+    }
+  },
+  "problems": [
+    {
+      "line": 8,
+      "section": "Menu.MyMod_Wheel",
+      "key": "OffsetY"
+    },
+    {
+      "line": 15,
+      "section": "Menu.Other",
+      "key": "UIScale"
+    },
+    {
+      "line": 16,
+      "section": "Menu.Other",
+      "key": "OpenKey"
+    },
+    {
+      "line": 20,
+      "section": "Dev",
+      "key": ""
+    },
+    {
+      "line": 24,
+      "section": "Unknown",
+      "key": ""
+    }
+  ],
+  "resolve": [
+    {
+      "menu": "MyMod_Wheel",
+      "effective": {
+        "openKey": 39,
+        "uiScale": 1.25,
+        "offsetX": -20,
+        "offsetY": 5,
+        "theme": "dark"
+      }
+    },
+    {
+      "menu": "MyMod_Wheel",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 39,
+        "uiScale": 1.25,
+        "offsetX": -20,
+        "offsetY": 5,
+        "theme": "dark"
+      }
+    },
+    {
+      "menu": "Other",
+      "effective": {
+        "uiScale": 2,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "Other",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 2,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}

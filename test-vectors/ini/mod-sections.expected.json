@@ -1,0 +1,110 @@
+{
+  "kind": "mod",
+  "ini": {
+    "menus": {
+      "Spaced": {
+        "openKey": 41
+      },
+      "upper": {
+        "openKey": 42,
+        "uiScale": 1.5
+      }
+    },
+    "widgets": {
+      "W": {
+        "offsetY": -100000
+      }
+    }
+  },
+  "problems": [
+    {
+      "line": 3,
+      "section": "",
+      "key": ""
+    },
+    {
+      "line": 14,
+      "section": "Widget.W",
+      "key": "Scale"
+    },
+    {
+      "line": 15,
+      "section": "Widget.W",
+      "key": "OffsetX"
+    },
+    {
+      "line": 19,
+      "section": "Runtime",
+      "key": ""
+    },
+    {
+      "line": 21,
+      "section": "Dev",
+      "key": ""
+    }
+  ],
+  "resolve": [
+    {
+      "menu": "Spaced",
+      "effective": {
+        "openKey": 41,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "Spaced",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 41,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "upper",
+      "effective": {
+        "openKey": 42,
+        "uiScale": 1.5,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "upper",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 42,
+        "uiScale": 1.5,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "effective": {
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    },
+    {
+      "menu": "NotInTheFile",
+      "jsonHotkey": 37,
+      "effective": {
+        "openKey": 37,
+        "uiScale": 1,
+        "offsetX": 0,
+        "offsetY": 0,
+        "theme": ""
+      }
+    }
+  ]
+}
