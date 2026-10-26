@@ -1,0 +1,2 @@
+# The INI vectors exercise CRLF, BOM and odd bytes: keep them exactly as written.
+test-vectors/** -text
