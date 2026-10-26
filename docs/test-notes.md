@@ -227,6 +227,15 @@ Menu SWFs from the Editor call `inkwell.log(level, nodeId, text)`; Log nodes and
 
 Report what differs from 12.2 to 12.5, and any `error`/`warn` line in `Inkwell.log` containing `[dev]` or `hot reload`.
 
+## 13. Translations (0.4.0, SPEC-CHANGES V13.2)
+
+Skyrim loads `Interface/Translations/<Name>_<LANGUAGE>.txt` only for loaded plugins (spike S-B, `TEST-IN-GAME-0.4.md` section 6), so the runtime reads the files of a menu itself. **Not yet run in game** (the in-game test is `TEST-IN-GAME-0.4.md` S-B2).
+
+- **Which file:** the menu JSON field `translations` (a mod name, `^[A-Za-z][A-Za-z0-9_]{0,63}$`; absent = no translations) and the game language (Skyrim.ini `[General] sLanguage`, upper case, `ENGLISH` if it is missing or not a language name). `Data/Interface/Translations/<translations>_<LANGUAGE>.txt`, read once on first use and kept for the session. No fallback language in the runtime: the SWF carries the source text and keeps it when the runtime has no answer; the Editor writes a file for every language, with the source text where a translation is missing.
+- **Format** (the Spec's `parseTranslationFile`; shared vectors in `test-vectors/translations/`, both readers must agree): BOM decides the encoding (FF FE = UTF-16 LE, FE FF = UTF-16 BE, EF BB BF or none = UTF-8). Lines end CRLF, LF or CR; blank lines and lines starting `;` or `#` are skipped; `$KEY<TAB>text`, the first TAB splits; the two characters backslash-n are a line break, a doubled backslash is one backslash. A bad line or a duplicate key is logged as a warning (`Demo_FRENCH.txt: line 5: no TAB between key and text`) and skipped; the later duplicate wins. Keys are matched ignoring case.
+- **Bridge:** `inkwell.language` (string) and `inkwell.translate(key)` (the text, or the key itself when there is none). Log lines: `game language GERMAN (translations are read from Data\Interface\Translations on first use)` at start, `loaded <file>: N entries, UTF-16 LE` (debug) on first use, `[AS2] [<menu>] translate('$Key') -> 'text'` (trace).
+- **Unit tests:** `InkwellTests` (translation vectors, the store with real files, case-insensitive keys, missing files, bad names, odd bytes, the `translations` menu field).
+
 ## Report
 
 Please send `Inkwell.log`, `skse64.log`, and: (1) did the DLL load; (2) per menu A to D: paused, cursor, movement, Esc behaviour; (3) which hotkeys were ignored and why; (4) did the missing-SWF menu crash, hang or only notify; (5) any `error` or `warn` line you did not expect.
