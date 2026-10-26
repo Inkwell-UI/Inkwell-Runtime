@@ -1,0 +1,10 @@
+{
+  "specVersion": 6,
+  "name": "InkwellTest_A",
+  "swf": "Interface/InkwellSpikeA.swf",
+  "minRuntime": "0.3.0",
+  "flags": { "pausesGame": true, "cursor": true, "modal": true, "closeOnEscape": true },
+  "inputContext": "menuMode",
+  "depth": 3,
+  "triggers": { "hotkey": 24, "papyrus": true, "modEvent": "InkwellTest_Open" }
+}

@@ -1,0 +1,9 @@
+{
+  "specVersion": 6,
+  "name": "InkwellTest_C",
+  "swf": "Interface/InkwellSpikeC.swf",
+  "flags": {},
+  "inputContext": "none",
+  "depth": 5,
+  "triggers": { "hotkey": 38 }
+}

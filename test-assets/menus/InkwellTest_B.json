@@ -1,0 +1,8 @@
+{
+  "specVersion": 6,
+  "name": "InkwellTest_B",
+  "swf": "Interface/InkwellSpikeB.swf",
+  "flags": { "cursor": true },
+  "depth": 4,
+  "triggers": { "hotkey": 25 }
+}

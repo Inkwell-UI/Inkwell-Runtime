@@ -1,0 +1,7 @@
+{
+  "specVersion": 6,
+  "name": "InkwellTest_MissingSwf",
+  "swf": "Interface/Inkwell/Test/DoesNotExist.swf",
+  "flags": { "cursor": true },
+  "triggers": { "hotkey": 49 }
+}

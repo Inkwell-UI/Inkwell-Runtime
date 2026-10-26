@@ -1,0 +1,8 @@
+{
+  "specVersion": 6,
+  "name": "InkwellTest_D",
+  "swf": "Interface/InkwellSpikeD.swf",
+  "flags": { "pausesGame": true, "closeOnEscape": false },
+  "depth": 3,
+  "triggers": { "hotkey": 37, "papyrus": false }
+}

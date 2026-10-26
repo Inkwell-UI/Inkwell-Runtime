@@ -1,0 +1,6 @@
+{
+  "name": "InkwellBad_SpikeForm",
+  "swf": "Interface/InkwellSpikeA.swf",
+  "flags": { "pausesGame": true, "cursor": true, "modal": true },
+  "trigger": { "hotkey": 24 }
+}
