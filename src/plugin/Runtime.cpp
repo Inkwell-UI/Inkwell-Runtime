@@ -234,7 +234,24 @@ namespace inkwell
 		e.modIni = std::move(c.modIni);
 		e.iniFile = std::move(c.iniFile);
 		e.file = std::move(c.file);
-		e.swfStamp = StampOf(SwfOnDisk(e.def));
+		const auto stamp = StampOf(SwfOnDisk(e.def));
+		if (config.devMode && stamp != e.swfStamp) {
+			// The engine keeps a loaded movie by name (the same movieDef came back after a reload), so a changed SWF is loaded under a new name.
+			// shortcut: copies pile up in Data/Interface/Inkwell/_dev, delete them by hand; clean up at startup if it ever matters.
+			const auto stem = fs::path(e.def.swf).stem().string();
+			const auto bare = "Inkwell/_dev/" + stem + "_" + std::to_string(stamp.mtime);
+			const auto dest = fs::path("Data/Interface") / (bare + ".swf");
+			std::error_code ec;
+			fs::create_directories(dest.parent_path(), ec);
+			fs::copy_file(SwfOnDisk(e.def), dest, fs::copy_options::overwrite_existing, ec);
+			if (ec) {
+				log::warn("hot reload: could not copy the SWF to {} ({}); the engine may show the old movie", dest.string(), ec.message());
+				e.loadName.clear();
+			} else {
+				e.loadName = bare;
+			}
+		}
+		e.swfStamp = stamp;
 		e.removed = false;
 		log::info("hot reload: '{}' updated from {} (swf '{}' on disk: {} bytes, mtime tick {})", e.def.name, e.file, e.def.swf, e.swfStamp.size, e.swfStamp.mtime);
 	}

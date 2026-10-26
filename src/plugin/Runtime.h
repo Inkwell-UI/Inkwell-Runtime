@@ -47,6 +47,7 @@ namespace inkwell
 		std::atomic<bool>                glueReady{ false };  // set by inkwell.glueReady(), reset when the menu is created
 		std::atomic<bool>                removed{ false };  // hot reload: its file is gone. The slot stays reserved (the engine keeps the name)
 		FileStamp                        swfStamp;  // size and mtime of Data/<swf> when it was last (re)loaded
+		std::string                      loadName;  // dev hot reload: bare name of a uniquely named copy of the SWF (the engine caches movies by name); empty = def.bareSwf
 
 		/// Usable: registered with the engine and not removed.
 		bool Active() const { return registered && !removed; }

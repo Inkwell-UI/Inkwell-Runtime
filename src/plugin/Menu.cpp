@@ -42,8 +42,9 @@ namespace inkwell
 			return;
 		}
 		// LoadMovieEx prepends "Interface/" and appends ".swf" itself, so it gets the normalized bare name (S1)
-		log::info("[{}] LoadMovieEx name='{}'", _name, d.bareSwf);
-		const bool ok = sm->LoadMovieEx(this, d.bareSwf, [this](RE::GFxMovieDef* a_def2) {
+		const std::string& load = a_entry.loadName.empty() ? d.bareSwf : a_entry.loadName;
+		log::info("[{}] LoadMovieEx name='{}'", _name, load);
+		const bool ok = sm->LoadMovieEx(this, load, [this](RE::GFxMovieDef* a_def2) {
 			log::info("[{}] LoadMovieEx callback: movieDef={} url='{}'", _name, static_cast<const void*>(a_def2), a_def2 ? a_def2->GetFileURL() : "");
 		});
 		log::info("[{}] LoadMovieEx returned {}; uiMovie={}", _name, ok, static_cast<const void*>(uiMovie.get()));
