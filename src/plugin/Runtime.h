@@ -2,12 +2,14 @@
 #pragma once
 #include "core/Ini.h"
 #include "core/MenuConfig.h"
+#include "core/MenuScan.h"
 #include "core/Registry.h"
 #include "core/Saved.h"
 #include "core/Version.h"
 
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -28,6 +30,7 @@ namespace inkwell
 		int         port{ 8788 };
 		bool        watch{ true };
 		bool        hasToken{ false };
+		std::string token;  // [Dev] Token as read (empty = the dev server generates one)
 	};
 
 	/// One registered menu: the validated JSON, the resolved INI values and the slot it owns. Entries are never freed (the creator
@@ -42,11 +45,17 @@ namespace inkwell
 		std::size_t                      slot{ 0 };
 		std::atomic<bool>                registered{ false };  // UI::Register succeeded
 		std::atomic<bool>                glueReady{ false };  // set by inkwell.glueReady(), reset when the menu is created
+		std::atomic<bool>                removed{ false };  // hot reload: its file is gone. The slot stays reserved (the engine keeps the name)
+		FileStamp                        swfStamp;  // size and mtime of Data/<swf> when it was last (re)loaded
+
+		/// Usable: registered with the engine and not removed.
+		bool Active() const { return registered && !removed; }
 	};
 
 	class Runtime
 	{
 	public:
+		Runtime() { _menus.reserve(MENU_SLOTS); }  // never reallocates: entry pointers and Find() stay valid while hot reload adds menus
 		static Runtime& Get();
 
 		// ---- load time ----
@@ -56,6 +65,30 @@ namespace inkwell
 		void LoadMenus();
 		/// Registers every loaded menu with the engine (UI::Register).
 		void RegisterMenus();
+
+		// ---- hot reload (S6), game thread only ----
+		struct ReloadAction
+		{
+			enum class Kind { kUpdate, kAdd, kRemove } kind{ Kind::kUpdate };
+			std::string                   name;
+			std::optional<MenuCandidate>  candidate;  // update, add
+		};
+		struct ReloadPlan
+		{
+			std::vector<ReloadAction>                     actions;
+			std::vector<std::pair<std::string, std::string>> skipped;  // (menu, reason)
+			bool                                          unknownMenu{ false };
+		};
+		/// Re-reads the menu JSON and INIs with the startup validation and compares with what is registered. `only` = a single menu name
+		/// (empty = all menus); `force` = reload even when nothing changed (the editor's request), otherwise only changed menus.
+		ReloadPlan PlanReload(const std::string& only, bool force);
+		/// Applies an update to a closed menu (keeps the slot, the registered name and the INI precedence).
+		void ApplyUpdate(MenuEntry& e, MenuCandidate&& c);
+		/// Registers a new menu in a free slot. Null (and `why`) when there is none.
+		MenuEntry* AddMenu(MenuCandidate&& c, std::string& why);
+		void       RemoveMenu(MenuEntry& e);
+		MenuEntry* FindAny(std::string_view name) const;  // including removed entries
+		std::vector<MenuEntry*> AllEntries() const;      // snapshot of the pointers, including removed entries
 
 		// ---- lookup ----
 		MenuEntry*                                    Find(std::string_view name) const;
@@ -92,6 +125,8 @@ namespace inkwell
 
 	private:
 		std::vector<std::unique_ptr<MenuEntry>> _menus;  // index = template slot
+		mutable std::mutex                      _menusMutex;  // guards the structure of _menus (Find runs on Papyrus threads)
+		std::unique_ptr<MenuEntry> MakeEntry(MenuCandidate&& c, std::size_t slot);
 		mutable std::mutex                      _openMutex;
 		std::vector<MenuEntry*>                 _open;  // in the order they were created
 		std::atomic<int>                        _refusedSlots{ 0 };

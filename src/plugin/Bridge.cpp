@@ -1,6 +1,9 @@
 #include "Bridge.h"
 
+#include "Dev.h"
 #include "Menu.h"
+
+#include <nlohmann/json.hpp>
 
 #include <array>
 
@@ -55,6 +58,29 @@ namespace inkwell
 			if (p.retVal && p.movie) p.movie->CreateString(p.retVal, s.c_str());
 		}
 
+		// S6: bool, number, string or null as is; an Array becomes a JSON string (primitives only, cut later at 512 characters), an Object "[object]"
+		dev::Scalar ToScalar(const RE::GFxValue& v)
+		{
+			if (v.IsBool()) return v.GetBool();
+			if (v.IsNumber()) return v.GetNumber();
+			if (v.IsString()) return std::string(v.GetString());
+			if (v.IsArray()) {
+				nlohmann::json arr = nlohmann::json::array();
+				const auto     n = std::min<std::uint32_t>(v.GetArraySize(), 64);
+				for (std::uint32_t i = 0; i < n; ++i) {
+					RE::GFxValue el;
+					v.GetElement(i, &el);
+					if (el.IsBool()) arr.push_back(el.GetBool());
+					else if (el.IsNumber()) arr.push_back(el.GetNumber());
+					else if (el.IsString()) arr.push_back(std::string(el.GetString()));
+					else arr.push_back(nullptr);
+				}
+				return arr.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+			}
+			if (v.IsObject()) return std::string("[object]");
+			return std::monostate{};
+		}
+
 		spdlog::level::level_enum LevelOf(const std::string& l)
 		{
 			if (l == "trace") return spdlog::level::trace;
@@ -99,6 +125,7 @@ namespace inkwell
 					const auto level = Str(p, 0), node = Str(p, 1), text = Str(p, 2);
 					// goes to spdlog as "[AS2] [<menu>] [<nodeId>] text"; the dev stream (S6) arrives with the dev server
 					spdlog::default_logger()->log(LevelOf(level), "[AS2] [{}] [{}] {}", menu, node, text);
+					devmode::Trace(level, menu, node, text);  // S6: to the editor with the node id
 					break;
 				}
 				case Fn::kGlueReady:
@@ -217,9 +244,18 @@ namespace inkwell
 					}
 					break;
 				}
-				case Fn::kWatch:
-				case Fn::kPin:
-					break;  // dev mode only; no-ops otherwise (S6)
+				case Fn::kWatch: {
+					// watch(graphId, name, scope, value): a no-op unless an editor subscribed to this menu with watch=true (S6)
+					if (!devmode::WantsWatch(menu) || p.argCount < 4) break;
+					devmode::Watch(menu, Str(p, 0), Str(p, 2), Str(p, 1), ToScalar(p.args[3]));
+					break;
+				}
+				case Fn::kPin: {
+					// pin(nodeId, pin, value)
+					if (!devmode::WantsPins(menu) || p.argCount < 3) break;
+					devmode::Pin(menu, Str(p, 0), Str(p, 1), ToScalar(p.args[2]));
+					break;
+				}
 				case Fn::kLegacyTrace: {
 					std::string text;
 					for (std::uint32_t i = 0; i < p.argCount; ++i) text += (i ? ", " : "") + Str(p, i);

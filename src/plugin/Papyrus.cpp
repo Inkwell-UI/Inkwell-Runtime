@@ -1,5 +1,7 @@
 #include "Papyrus.h"
 
+#include "Dev.h"
+
 namespace inkwell
 {
 	namespace
@@ -9,8 +11,8 @@ namespace inkwell
 		std::int32_t      GetVersion(RE::StaticFunctionTag*) { return static_cast<std::int32_t>(Pack(kRuntimeVersion)); }
 		RE::BSFixedString GetVersionString(RE::StaticFunctionTag*) { return RE::BSFixedString(ToString(kRuntimeVersion).c_str()); }
 
-		// Dev mode (S6) is not part of this build: always false, even if Inkwell.ini asks for it (logged at load).
-		bool IsDevMode(RE::StaticFunctionTag*) { return false; }
+		// S6: true only when Inkwell.ini [Dev] DevMode=1 (never from a mod INI).
+		bool IsDevMode(RE::StaticFunctionTag*) { return devmode::Active(); }
 
 		bool IsMenuRegistered(RE::StaticFunctionTag*, RE::BSFixedString a_menu)
 		{

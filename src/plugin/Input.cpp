@@ -63,7 +63,7 @@ namespace inkwell
 							}
 						}
 						for (const auto& m : rt.Menus()) {
-							if (!m->registered || !m->eff.openKey || static_cast<std::uint32_t>(*m->eff.openKey) != key) continue;
+							if (!m->Active() || !m->eff.openKey || static_cast<std::uint32_t>(*m->eff.openKey) != key) continue;
 							if (rt.IsMenuOpen(m->def.name)) {
 								log::info("key {} -> hide '{}'", key, m->def.name);
 								rt.CloseMenu(m->def.name, "hotkey");
@@ -115,7 +115,7 @@ namespace inkwell
 					auto&             rt = Runtime::Get();
 					// triggers.modEvent opens the menu; every event also goes to the open menus (On Mod Event)
 					for (const auto& m : rt.Menus()) {
-						if (m->registered && !m->def.modEvent.empty() && LowerCopy(m->def.modEvent) == LowerCopy(name)) {
+						if (m->Active() && !m->def.modEvent.empty() && LowerCopy(m->def.modEvent) == LowerCopy(name)) {
 							log::info("mod event '{}' -> open '{}'", name, m->def.name);
 							rt.OpenMenu(m->def.name, "modEvent", false);
 						}

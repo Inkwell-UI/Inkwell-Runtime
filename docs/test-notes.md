@@ -1,4 +1,4 @@
-# In-game test notes: Inkwell Runtime 0.3, phases 2 and 5 (runtime core, saved state, events)
+# In-game test notes: Inkwell Runtime 0.3, phases 2, 5 and 6 (runtime core, saved state, events, dev mode)
 
 For the owner. Claude cannot run Skyrim, so nothing below has been seen in game yet. Each step says what you should see; the lines in `Inkwell.log` are the evidence. Please send back `Inkwell.log`, `skse64.log` and the answers to the "Report" questions at the end.
 
@@ -108,7 +108,7 @@ Edit `InkwellTest.ini` (the file in your MO2 mod), change `OpenKey` of `[Menu.In
 
 ## 7. Runtime-wide Inkwell.ini
 
-Copy `test-assets/ini/Inkwell.ini` to `SKSE/Plugins/Inkwell/Inkwell.ini`. Expected: `log level 'debug' (from Inkwell.ini)` (trace lines disappear). Setting `DevMode=1` only logs `[Dev] DevMode=1 is set, but the dev server ... is not part of this build`. A `[Dev]` or `[Runtime]` section in `InkwellTest.ini` is ignored with a warning (a mod cannot switch dev mode on).
+Copy `test-assets/ini/Inkwell.ini` to `SKSE/Plugins/Inkwell/Inkwell.ini`. Expected: `log level 'debug' (from Inkwell.ini)` (trace lines disappear). Setting `DevMode=1` turns dev mode on (section 12). A `[Dev] or `[Runtime]` section in `InkwellTest.ini` is ignored with a warning (a mod cannot switch dev mode on).
 
 ## 8. What I could not check (please look)
 
@@ -150,9 +150,82 @@ Runtime messages (`onMessage`) come from the same sources as the replay in secti
 
 ## 11. getSetting, getInputDevice, callRuntime
 
-- `getSetting(section, key, default)` (S4.2 has three arguments) reads the mod INI that holds the menu's section, any section, keys case-insensitive, and always returns a String (the generated code converts). `InkwellTest.ini` has `[Custom]` with `Greeting=hello from the ini`, `Count=3`, `Enabled=true`. From a Get Setting node: `getSetting('Custom', 'Greeting', 'none') -> 'hello from the ini'`; a missing key or section logs `... -> 'none' (default)`; a menu whose mod has no INI always gets the default. Edit the INI, reopen the menu, the new value appears (the INI is read at game start, so restart the game; hot reload is phase 6).
+- `getSetting(section, key, default)` (S4.2 has three arguments) reads the mod INI that holds the menu's section, any section, keys case-insensitive, and always returns a String (the generated code converts). `InkwellTest.ini` has `[Custom]` with `Greeting=hello from the ini`, `Count=3`, `Enabled=true`. From a Get Setting node: `getSetting('Custom', 'Greeting', 'none') -> 'hello from the ini'`; a missing key or section logs `... -> 'none' (default)`; a menu whose mod has no INI always gets the default. Edit the INI, reopen the menu, the new value appears (the INI is read at game start, so restart the game; the hot reload of section 12 re-reads the menu JSON and the INIs but does not refresh what `getSetting` reads from a menu that is already loaded: reopen it).
 - `getInputDevice()` returns `keyboardMouse` or `gamepad` from the last input event. Log: none by default (the call is not logged); the node's output is the evidence. Press a gamepad button, reopen or re-trigger, expect `gamepad`.
-- `callRuntime(name, arg)` (one argument, S4.2): `inkwell.version` -> `0.3.0`, `inkwell.ismenuopen` with a menu name -> `1`/`0`, `inkwell.isdevmode` -> `0`; anything else logs `callRuntime('x'): unknown function, returning ""` (warn) and returns an empty string. Functions registered by other SKSE plugins (`RegisterFunction`) need such a plugin; none exists yet.
+- `callRuntime(name, arg)` (one argument, S4.2): `inkwell.version` -> `0.3.0`, `inkwell.ismenuopen` with a menu name -> `1`/`0`, `inkwell.isdevmode` -> `0` (`1` in dev mode); anything else logs `callRuntime('x'): unknown function, returning ""` (warn) and returns an empty string. Functions registered by other SKSE plugins (`RegisterFunction`) need such a plugin; none exists yet.
+
+## 12. Dev mode: debug server, hot reload, live inspection (S6, phase 6)
+
+Nothing here has been seen in game. The server, the codec, the limits and the file watcher are tested on this machine without the game (`ctest --preset tests`, test `dev`, and `scripts/dev-client.mjs` against `InkwellDevTests --serve`); what is **not** seen is the game side: closing and reopening a real menu, the movie cache, `inkwell.watch`/`inkwell.pin` from a real SWF.
+
+### 12.1 What dev mode is, and the off switch
+
+Dev mode exists only if `Data/SKSE/Plugins/Inkwell/Inkwell.ini` has `[Dev]` and `DevMode=1`. A `[Dev]` section in a mod INI is ignored with a warning. Without it: no socket, no file watcher, no token, `Inkwell_API.IsDevMode()` is false, `inkwell.watch`/`inkwell.pin` do nothing, the log says `dev mode is off`.
+
+```ini
+; Data/SKSE/Plugins/Inkwell/Inkwell.ini (in MO2: your mod folder, or the overwrite folder)
+[Dev]
+DevMode=1
+; Port=8788      (default; the Figma bridge uses 8787)
+; Watch=1        (file watcher; default 1)
+; Token=         (leave empty: the runtime makes one and writes it here)
+```
+
+Start the game once to the main menu, then check `Inkwell.log`:
+
+| Expect | Meaning |
+|---|---|
+| a block of `=====` lines with `INKWELL DEV MODE IS ON` | the gate is open (warn level, on purpose) |
+| `dev mode: generated a new token and wrote it to Data\SKSE\Plugins\Inkwell\Inkwell.ini` (only the first time) | the token now sits in `Inkwell.ini` under `[Dev] Token=` (64 hex digits). With MO2 the file can appear in the `overwrite` folder |
+| `dev server on 127.0.0.1:8788, token ab12...ef90` | listening; the log shows the token **masked**, never in full |
+| `file watcher on the menu JSON, INIs and SWFs: running (300 ms debounce)` | hot reload on file changes |
+| `dev server not started: cannot listen on ... (port in use?)` | change `[Dev] Port`; the game itself is not affected |
+
+`Inkwell_API.IsDevMode()` (or Call Runtime `inkwell.isdevmode`) now returns true / `1`. Remove `DevMode=1` (or the file) for a release setup.
+
+### 12.2 Check the server without the editor (`scripts/dev-client.mjs`)
+
+Needs Node 22 or newer only (no packages). With the game running (main menu is enough, Alt-Tab out):
+
+```powershell
+cd Inkwell-Runtime
+node scripts/dev-client.mjs --ini "<path to Inkwell.ini>" --seconds 30
+# or: node scripts/dev-client.mjs --token <64 hex digits> --port 8788
+```
+
+Expected output: `HTTP/1.1 101 Switching Protocols`, then `helloAck ok=true runtime 0.3.0 ... protocol 1 spec 6 game ...` with one `menu <name> <swf> open=false` line per registered menu. Server lines (`trace [...] runtime: ...`) scroll by: every spdlog line, so many at `trace` log level. Then:
+
+| Command | Expected |
+|---|---|
+| `... --subscribe InkwellTest_A --watch --pins` | no error; `Inkwell.log`: `dev: subscribe InkwellTest_A watch=1 pins=1`. Open the menu in game: a `menuState` line `open:true`, close it: `open:false` |
+| the same with `--subscribe NoSuchMenu` | an `error` message with `"code":"unknown-menu"`, the connection stays open |
+| `... --reload` (all menus) | `reloadAck` with `"ok":true` and every menu in `reloaded`. Log: `hot reload (editor request): reloaded N ...` |
+| `... --reload InkwellTest_A` while A is open | the menu closes and opens again by itself (see 12.4); `menuState` false then true; `reloadAck` lists `InkwellTest_A` |
+| `... --reload NoSuchMenu` | `reloadAck` with `"ok":false` and an `error` with `"code":"unknown-menu"` |
+| a wrong token | `helloAck ok=false error=unauthorized`, `server closed: code 1008`. After 5 wrong tokens within a minute the server refuses connections for 60 s |
+| `... --origin http://x --expect-fail` and `... --host evil.example --expect-fail` | `HTTP/1.1 403 Forbidden`, exit code 0 |
+| two clients at once | the second one gets an `error` with `"code":"busy"` and is closed; the first keeps running |
+
+### 12.3 Trace and watch (needs a menu SWF built for it)
+
+Menu SWFs from the Editor (`feat/runtime-nodes` or later) call `inkwell.log(level, nodeId, text)`; Log nodes and the try/catch failure lines arrive as `trace [info] as2 <menu> node=<id>: text`. A deliberate error (a node that throws) shows up as `trace [error] ... node=<id>` and the menu keeps working. `inkwell.watch` and `inkwell.pin` calls are emitted only into builds deployed with dev mode on; with `--subscribe M --watch` the client prints `watch ...` lines (a full dump when you subscribe and again every time M opens), with `--pins` it prints `pin ...` lines at most 20 per second per pin. The spike SWFs never call any of this.
+
+### 12.4 Hot reload
+
+1. Open a menu (hotkey), keep it open. Run `node scripts/dev-client.mjs --ini ... --reload <menu> --seconds 5`.
+2. Expected log: `hot reload: closing '<menu>' to apply the new files`, the menu's own `closing (kHide): calling onClose` and `dtor`, then `hot reload: '<menu>' updated from ... (swf '...' on disk: N bytes, mtime tick T)`, then `open '<menu>' (hot reload): queue kShow` and a new `LoadMovieEx` line. The menu closes and opens again within a second.
+3. **The movie cache is not verified.** Replace the menu's SWF with a visibly different one (or just the Editor's Deploy), run the reload, and look at the menu: new content = the engine re-read the file. If the old content shows, tell me: the fallback is a distinct SWF name per deploy (S6). The log line with the file size and mtime proves what was on disk at that moment.
+4. File watcher: with the game running, change a value in the menu JSON (for example `depth`) or copy another SWF over the menu's SWF. After about 300 ms of quiet: `hot reload (file watcher): reloaded 1, ...` and the menu (if open) reopens. A broken JSON (delete a brace): `skipped ... its file is invalid now; the previous version stays loaded`, nothing breaks; fix the file, it reloads.
+5. Slots: copy a menu JSON to a new name with a new menu `name` while the game runs: `hot reload: new menu '<name>' registered in slot N`, its hotkey works. With all 16 slots used: `skipped ... no free template slot`. Delete a menu JSON: `hot reload: '<name>' removed ... slot N stays reserved`, its hotkey stops, and the slot is **not** reused by a different name (the engine keeps the old name); the same name coming back reuses it.
+
+### 12.5 With the Editor as the client (the editor client is being built next)
+
+1. Settings, game folder: the MO2 mod folder (or Data folder) the Editor deploys to. Tick the dev deploy option ("Enable Dev Mode"); the Editor writes `[Dev] DevMode=1` and a `Token=` of 64 hex digits into `Inkwell.ini` there.
+2. Start Skyrim; check the log lines of 12.1. The Game dot in the status bar turns green after the Editor connects; hover shows the runtime version.
+3. Deploy: files are written, then the Editor sends `reload`. The open menu reloads; the Trace & Watch panel shows lines with node ids.
+4. Close the game: the dot turns grey.
+
+Report what differs from 12.2 to 12.5, and any `error`/`warn` line in `Inkwell.log` containing `[dev]` or `hot reload`.
 
 ## Report
 

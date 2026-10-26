@@ -1,5 +1,6 @@
 // Inkwell Runtime: SKSE plugin entry. Registers the menus defined by Data/SKSE/Plugins/Inkwell/menus/*.json (S1), applies the user INIs (S2),
 // and exposes the Papyrus API (S4.1), the AS2 bridge (S4.2) and the SKSE messaging interface (S4.3). Everything logs verbosely.
+#include "Dev.h"
 #include "Input.h"
 #include "Menu.h"
 #include "Messaging.h"
@@ -19,6 +20,7 @@ namespace
 			rt.LoadMenus();
 			rt.RegisterMenus();
 			InstallInputSinks();
+			devmode::Start();
 		} catch (const std::exception& e) {
 			log::error("kDataLoaded: {}", e.what());
 		} catch (...) {
@@ -60,6 +62,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 
 	try {
 		Runtime::Get().LoadRuntimeConfig();
+		devmode::InstallLogForwarder();
 		InitMessaging();
 		InitSavedState();
 		const bool papyrus = SKSE::GetPapyrusInterface()->Register(RegisterPapyrus);

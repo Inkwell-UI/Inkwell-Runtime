@@ -20,6 +20,8 @@ namespace inkwell
 		void DeliverMessage(const DataEntry& a_entry);
 		void DeliverModEvent(const std::string& a_name, const std::string& a_strArg, float a_numArg);
 		void DeliverInput(const std::string& a_action);
+		/// Dev mode: asks the generated menu class to report every variable through inkwell.watch (S7 `dumpVariables`).
+		void DumpVariables();
 
 		MenuEntry& Entry() { return _entry; }
 		bool       IsOpenPhase() const { return _phase == Phase::kOpen; }

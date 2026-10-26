@@ -2,7 +2,7 @@
 
 The SKSE plugin (`Inkwell.dll`) behind Inkwell custom menus: it registers menus described by JSON files, opens them from a hotkey, a Papyrus call or a mod event, bridges Papyrus, AS2 and C++, and logs everything to `Documents/My Games/Skyrim Special Edition/SKSE/Inkwell.log`.
 
-Status: milestone 0.3, phases 2 and 5 (runtime core, saved state, events). Built against `Inkwell Design Spec.md` (Inkwell Runtime) and `SPEC-CHANGES.md` section S. Not yet verified in game; see `docs/test-notes.md` for the steps and the list of what is unverified.
+Status: milestone 0.3, phases 2, 5 and 6 (runtime core, saved state, events, dev mode). Built against `Inkwell Design Spec.md` (Inkwell Runtime) and `SPEC-CHANGES.md` section S. Not yet verified in game; see `docs/test-notes.md` for the steps and the list of what is unverified.
 
 ## What is in these phases
 
@@ -12,22 +12,24 @@ Status: milestone 0.3, phases 2 and 5 (runtime core, saved state, events). Built
 | User INI overrides (`<modId>.ini`, `Inkwell.ini`), precedence default < JSON < INI | done |
 | `InkwellMenu`: flags, depth, input context, `LoadMovieEx` with the normalized bare name, open/close | done |
 | Triggers: hotkey (JSON or INI `OpenKey`), Esc, Papyrus, mod event | done |
-| Papyrus API `Inkwell_API.psc` | done except `IsDevMode` (always false) |
-| AS2 bridge `_root.inkwell` | done except `watch`/`pin` (no-ops until dev mode) |
+| Papyrus API `Inkwell_API.psc` | done (`IsDevMode` is true when `Inkwell.ini [Dev] DevMode=1`) |
+| AS2 bridge `_root.inkwell` | done (`watch`/`pin` stream to the editor in dev mode, no-ops otherwise) |
 | SKSE messaging `InkwellAPI.h` (interface, `RegisterFunction`, menu messages) | done |
 | Saved variables: in-memory store, SKSE co-save `INKW`/`SVAR` v1 (S5), `getSaved`/`setSaved`; unknown record versions are skipped and logged | done (not seen in game) |
-| Dev mode (WebSocket, hot reload), missing-runtime ESP, UI scale glue | later phases |
+| Dev mode (S6): `[Dev] DevMode=1` gate, WebSocket server on 127.0.0.1 with token, Origin/Host checks, trace forwarding, subscribe/watch/pin, `menuState`, hot reload (file watcher and the editor's `reload`) | done, engine-free parts unit-tested and run end to end on loopback; the game side is not seen in game |
+| Missing-runtime ESP, UI scale glue | later phases |
 
 ## Layout
 
 ```
 CMakeLists.txt, CMakePresets.json, vcpkg.json   build (product name in one place: INKWELL_PRODUCT_NAME in CMakeLists.txt)
-src/core/        pure C++ (no engine): versions, menu JSON validation, INI parser, saved-variable store and co-save record codec, small tables. Unit-tested.
+src/core/        pure C++ (no engine): versions, menu JSON validation, INI parser, saved-variable store and co-save record codec, small tables, and the dev server (Crypto, WebSocket, DevProtocol, DevServer on Winsock, DirWatcher, MenuScan). Unit-tested.
 src/plugin/      the SKSE plugin: Runtime (registry), Menu (IMenu), Bridge (AS2), Input, Papyrus, Messaging, main
 include/InkwellAPI.h   C interface for other SKSE plugins (MIT)
 papyrus/Source/Scripts/Inkwell_API.psc   the Papyrus API (ship it with the runtime; compile it with your Papyrus compiler)
 papyrus/stubs/   tiny original header stubs, used only to compile the test helper script
-tests/           core_tests.cpp (CTest target `core`)
+tests/           core_tests.cpp (CTest `core`), dev_tests.cpp (CTest `dev`: dev server unit tests and a loopback end-to-end run; `InkwellDevTests --serve <port> <token>` keeps a fake server up)
+scripts/         dev-client.mjs: a dependency-free dev-mode client for checking the server without the editor
 test-vectors/    INI test vectors shared with Inkwell-Spec (see below)
 test-assets/     test menus, bad menu files, example INIs, a test helper script
 docs/test-notes.md   step-by-step in-game test for the author

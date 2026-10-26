@@ -1,5 +1,7 @@
 #include "Messaging.h"
 
+#include "Dev.h"
+
 #include "InkwellAPI.h"
 
 #include <cstring>
@@ -77,7 +79,7 @@ namespace inkwell
 		auto& ft = Runtime::Get().functions;
 		ft.Register("inkwell.version", [](const std::string&) { return ToString(kRuntimeVersion); });
 		ft.Register("inkwell.ismenuopen", [](const std::string& a) { return std::string(Runtime::Get().IsMenuOpen(a) ? "1" : "0"); });
-		ft.Register("inkwell.isdevmode", [](const std::string&) { return std::string("0"); });
+		ft.Register("inkwell.isdevmode", [](const std::string&) { return std::string(devmode::Active() ? "1" : "0"); });
 	}
 
 	void DispatchInterfaceReady()

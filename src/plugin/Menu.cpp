@@ -1,6 +1,7 @@
 #include "Menu.h"
 
 #include "Bridge.h"
+#include "Dev.h"
 
 #include <array>
 #include <utility>
@@ -135,6 +136,7 @@ namespace inkwell
 		_phase = Phase::kOpen;
 		_openedBroadcast = true;
 		Runtime::Get().BroadcastMenuState(_entry, true);
+		devmode::OnMenuOpened(_entry);
 	}
 
 	void InkwellMenu::BeginClose(const char* a_why)
@@ -176,6 +178,13 @@ namespace inkwell
 		if (!uiMovie || !HasMenuClass(*uiMovie)) return;
 		log::debug("[{}] onModEvent('{}')", _name, a_name);
 		CallMenuClass(*uiMovie, _name, "onModEvent", { RE::GFxValue(a_name.c_str()), RE::GFxValue(a_strArg.c_str()), RE::GFxValue(static_cast<double>(a_numArg)) });
+	}
+
+	void InkwellMenu::DumpVariables()
+	{
+		if (!uiMovie || !HasMenuClass(*uiMovie)) return;
+		log::debug("[{}] dumpVariables()", _name);
+		CallMenuClass(*uiMovie, _name, "dumpVariables", {});
 	}
 
 	void InkwellMenu::DeliverInput(const std::string& a_action)
