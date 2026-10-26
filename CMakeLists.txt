@@ -78,5 +78,10 @@ if(INKWELL_BUILD_PLUGIN)
     INKWELL_PRODUCT_NAME="${INKWELL_PRODUCT_NAME}"
     INKWELL_DEFAULT_LOG_LEVEL="${INKWELL_DEFAULT_LOG_LEVEL}")
   target_link_libraries(${INKWELL_PRODUCT_NAME} PRIVATE InkwellCore)
+  # a PDB next to the DLL (Release stays optimized): crash logs and debuggers can resolve the addresses
+  if(MSVC)
+    target_compile_options(${INKWELL_PRODUCT_NAME} PRIVATE /Zi)
+    target_link_options(${INKWELL_PRODUCT_NAME} PRIVATE /DEBUG /OPT:REF /OPT:ICF)
+  endif()
   target_precompile_headers(${INKWELL_PRODUCT_NAME} PRIVATE src/plugin/PCH.h)
 endif()
