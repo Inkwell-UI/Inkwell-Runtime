@@ -4,6 +4,7 @@
 #include "core/MenuConfig.h"
 #include "core/Registry.h"
 #include "core/Saved.h"
+#include "core/Translations.h"
 #include "core/Version.h"
 
 #include <nlohmann/json.hpp>
@@ -157,7 +158,7 @@ static void TestMenuDef()
 		CHECK(Parse(j).def.has_value());
 		j["specVersion"] = 6.0;  // JS: an integral float is an int
 		CHECK(Parse(j).def.has_value());
-		j["specVersion"] = 7;  // newer than the runtime: parsed with a warning
+		j["specVersion"] = kSpecVersion + 1;  // newer than the runtime: parsed with a warning
 		const auto r = Parse(j);
 		CHECK(r.def.has_value() && std::any_of(r.problems.begin(), r.problems.end(), [](const Problem& p) { return p.level == Problem::Level::kWarn; }));
 	}
@@ -412,6 +413,78 @@ static void TestSaved()
 	CHECK(std::get<double>(*a.Get("menu_a", "x")) == 1.0 && std::get<std::string>(*a.Get("menu_b", "y")) == "z");
 }
 
+// ---- translations (V13.2) ----------------------------------------------------------------------------------------
+static void TestTranslations(const std::filesystem::path& dir)
+{
+	// shared vectors: the Spec's parseTranslationFile and ours must agree on entries, encoding and the skipped lines
+	int count = 0;
+	for (const auto& e : std::filesystem::directory_iterator(dir)) {
+		if (e.path().extension() != ".txt") continue;
+		++count;
+		const auto stem = e.path().stem().string();
+		const auto expected = json::parse(ReadFile(dir / (stem + ".expected.json")));
+		const auto bytes = ReadFile(e.path());
+		const auto got = ParseTranslationFile(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size());
+
+		json entries = json::object();
+		for (const auto& [k, v] : got.entries) entries[k] = v;
+		const std::string enc = got.encoding == TextEncoding::kUtf8 ? "utf-8" : got.encoding == TextEncoding::kUtf16le ? "utf-16le" : "utf-16be";
+		CHECK_MSG(enc == expected.at("encoding").get<std::string>(), stem + " encoding " + enc);
+		CHECK_MSG(entries == expected.at("entries"), stem + "\n  got:      " + entries.dump() + "\n  expected: " + expected.at("entries").dump());
+		CHECK_MSG(json(got.issueLines) == expected.at("issueLines"), stem + " issue lines " + json(got.issueLines).dump());
+		CHECK(got.problems.size() == got.issueLines.size());
+	}
+	CHECK_MSG(count >= 8, "found only " + std::to_string(count) + " translation vectors in " + dir.string());
+
+	// never throws or reads out of range on odd bytes
+	for (const std::string& s : { std::string(), std::string("\xFF"), std::string("\xFF\xFE\x24"), std::string("\xEF\xBB"), std::string("\xFE\xFF\xD8\x00"), std::string("\t\t\t"), std::string("$A\t\\") }) {
+		(void)ParseTranslationFile(reinterpret_cast<const std::uint8_t*>(s.data()), s.size());
+	}
+	CHECK(ParseTranslationFile(nullptr, 0).entries.empty());
+
+	CHECK(IsValidTranslationKey("$A") && IsValidTranslationKey("$Inkwell_Stopwatch_Start") && !IsValidTranslationKey("A") && !IsValidTranslationKey("$") && !IsValidTranslationKey("$a b") &&
+		  !IsValidTranslationKey("$" + std::string(97, 'x')) && IsValidTranslationKey("$" + std::string(96, 'x')));
+	CHECK(IsValidTranslationMod("InkwellSpike04") && !IsValidTranslationMod("4x") && !IsValidTranslationMod("a b") && !IsValidTranslationMod("") && !IsValidTranslationMod(std::string(65, 'a')));
+	CHECK(IsValidLanguage("GERMAN") && !IsValidLanguage("german") && !IsValidLanguage("DE") && !IsValidLanguage("GERMAN1"));
+
+	// the store: lazy files named <Mod>_<LANGUAGE>.txt, case-insensitive keys, missing files and bad names are just "not found"
+	const auto tmp = std::filesystem::temp_directory_path() / "inkwell-translations-test";
+	std::filesystem::remove_all(tmp);
+	std::filesystem::create_directories(tmp);
+	std::filesystem::copy_file(dir / "utf16le-basic.txt", tmp / "Demo_GERMAN.txt");
+	std::filesystem::copy_file(dir / "utf8-bom-messy.txt", tmp / "Demo_FRENCH.txt");
+	TranslationStore st;
+	st.SetDirectory(tmp);
+	const auto reset = st.Find("Demo", "GERMAN", "$A_One");
+	CHECK(reset && *reset == "Zur\xC3\xBC" "cksetzen \xC3\x84\xC3\x96\xC3\x9C \xC3\x9F");
+	CHECK(st.Find("demo", "GERMAN", "$a_TWO") == std::optional<std::string>("line one\nline two"));
+	CHECK(!st.Find("Demo", "GERMAN", "$Missing"));
+	CHECK(!st.Find("Demo", "ENGLISH", "$A_One"));
+	CHECK(!st.Find("Demo", "german", "$A_One"));
+	CHECK(!st.Find("../Demo", "GERMAN", "$A_One"));
+	CHECK(st.Find("Demo", "FRENCH", "$A_One") == std::optional<std::string>("Uno"));
+	const auto problems = st.TakeProblems();
+	CHECK_MSG(std::any_of(problems.begin(), problems.end(), [](const Problem& p) { return p.level == Problem::Level::kWarn && p.message.find("Demo_FRENCH.txt") != std::string::npos; }), "malformed lines of the French file are reported");
+	CHECK(st.TakeProblems().empty());
+	std::filesystem::remove(tmp / "Demo_GERMAN.txt");
+	CHECK(st.Find("Demo", "GERMAN", "$A_One"));  // cached for the session
+	st.Clear();
+	CHECK(!st.Find("Demo", "GERMAN", "$A_One"));
+	std::filesystem::remove_all(tmp);
+
+	// menu JSON: `translations`
+	auto j = GoodMenu();
+	CHECK(ParseMenuDef(j.dump()).def->translations.empty());
+	j["translations"] = "MyMod";
+	CHECK(ParseMenuDef(j.dump()).def && ParseMenuDef(j.dump()).def->translations == "MyMod");
+	for (const json& bad : { json("my mod"), json(""), json(4), json("../x") }) {
+		j["translations"] = bad;
+		const auto r = ParseMenuDef(j.dump());
+		CHECK_MSG(!r.def && std::any_of(r.problems.begin(), r.problems.end(), [](const Problem& p) { return p.level == Problem::Level::kError && p.message.rfind("translations", 0) == 0; }), bad.dump());
+	}
+	CHECK(Pack(kRuntimeVersion) >= Pack({ 0, 4, 0 }) && kSpecVersion == 7);
+}
+
 int main(int argc, char** argv)
 {
 	const std::filesystem::path vectors = argc > 1 ? argv[1] : "test-vectors";
@@ -422,6 +495,7 @@ int main(int argc, char** argv)
 	TestIniMisc();
 	TestTables();
 	TestSaved();
+	TestTranslations(vectors / "translations");
 	std::cout << g_checks << " checks, " << g_failed << " failed\n";
 	return g_failed == 0 ? 0 : 1;
 }

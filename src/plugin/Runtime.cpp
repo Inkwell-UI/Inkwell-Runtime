@@ -132,8 +132,33 @@ namespace inkwell
 		return e;
 	}
 
+	void Runtime::LoadLanguage()
+	{
+		std::string lang = "ENGLISH";
+		if (const auto* s = RE::GetINISetting("sLanguage:General"); s && s->GetType() == RE::Setting::Type::kString && s->GetString()) lang = s->GetString();
+		std::transform(lang.begin(), lang.end(), lang.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+		if (!IsValidLanguage(lang)) {
+			log::warn("sLanguage '{}' is not a language name; using ENGLISH for translations", lang);
+			lang = "ENGLISH";
+		}
+		language = lang;
+		translations.SetDirectory(fs::path("Data") / "Interface" / "Translations");
+		log::info("game language {} (translations are read from Data\\Interface\\Translations on first use)", language);
+	}
+
+	std::string Runtime::Translate(const MenuEntry& e, std::string_view key)
+	{
+		std::string out(key);
+		if (!e.def.translations.empty()) {
+			if (auto t = translations.Find(e.def.translations, language, key)) out = std::move(*t);
+			for (const auto& p : translations.TakeProblems()) LogProblem(e.def.translations, p);
+		}
+		return out;
+	}
+
 	void Runtime::LoadMenus()
 	{
+		LoadLanguage();
 		std::error_code ec;
 		log::info("scanning {} (cwd {})", kBaseDir.string(), fs::current_path(ec).string());
 		auto scan = ScanMenus(kBaseDir);

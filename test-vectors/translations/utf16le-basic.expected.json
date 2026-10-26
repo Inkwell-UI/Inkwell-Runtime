@@ -1,0 +1,10 @@
+{
+  "encoding": "utf-16le",
+  "entries": {
+    "$A_One": "Zurücksetzen ÄÖÜ ß",
+    "$A_Two": "line one\nline two",
+    "$A_Three": "back\\slash",
+    "$A_Four": ""
+  },
+  "issueLines": []
+}

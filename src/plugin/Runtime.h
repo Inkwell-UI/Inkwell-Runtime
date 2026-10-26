@@ -5,6 +5,7 @@
 #include "core/MenuScan.h"
 #include "core/Registry.h"
 #include "core/Saved.h"
+#include "core/Translations.h"
 #include "core/Version.h"
 
 #include <atomic>
@@ -67,6 +68,10 @@ namespace inkwell
 		void LoadMenus();
 		/// Registers every loaded menu with the engine (UI::Register).
 		void RegisterMenus();
+		/// Reads Skyrim.ini [General] sLanguage and points the translation store at Data/Interface/Translations (kDataLoaded, before the menus open).
+		void LoadLanguage();
+		/// V13.2 `inkwell.translate(key)`: the text of `key` for the game language from the menu's translation file, or `key` itself when there is none.
+		std::string Translate(const MenuEntry& e, std::string_view key);
 
 		// ---- hot reload (S6), game thread only ----
 		struct ReloadAction
@@ -123,6 +128,8 @@ namespace inkwell
 		DataStore     data;
 		FunctionTable functions;
 		SavedStore    saved;  // S5; filled from / written to the SKSE co-save (Saved.cpp)
+		TranslationStore translations;  // V13.2
+		std::string   language{ "ENGLISH" };  // Skyrim.ini [General] sLanguage, upper case
 		std::atomic<InputDevice> lastDevice{ InputDevice::kKeyboardMouse };
 
 	private:

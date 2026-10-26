@@ -33,7 +33,7 @@ Hotkeys of the test menus (DirectInput codes): **O** = A (24), **P** = B (25, mo
 1. Start the game with `skse64_loader.exe`, reach the main menu, quit.
 2. `skse64.log` must say `plugin Inkwell.dll ... loaded correctly`. If it says the plugin needs a newer/older Address Library or is incompatible, send it.
 3. `Inkwell.log` starts with:
-   - `Inkwell Runtime 0.3.0 (spec 6, protocol 1) on Skyrim 1-7-104-0, SKSE ...`
+   - `Inkwell Runtime 0.4.0 (spec 7, protocol 1) on Skyrim 1-7-104-0, SKSE ...`
    - `no Data\SKSE\Plugins\Inkwell\Inkwell.ini (that is fine): built-in defaults`
    - `log level 'trace' (built-in default) ...`
    - `messaging: listener for other plugins registered: true` (if `false`, tell me)
@@ -94,7 +94,7 @@ Copy the files of `test-assets/menus-bad/` into `SKSE/Plugins/Inkwell/menus/` on
 | `bad_03_name.json` | `skipped, name: must match ^[A-Za-z][A-Za-z0-9_]{1,63}$` |
 | `bad_04_swf_path.json` | `skipped, swf: must be relative to Data/, start with Interface/ ...` |
 | `bad_05_hotkey.json` | `skipped, triggers.hotkey: expected a DirectInput scan code from 2 to 255 (1 is Escape)` |
-| `bad_06_needs_newer_runtime.json` | `skipped, ERROR menu 'InkwellBad_NewerRuntime' needs Inkwell Runtime 0.4.0, this is 0.3.0: not registered` |
+| `bad_06_needs_newer_runtime.json` | `skipped, ERROR menu 'InkwellBad_NewerRuntime' needs Inkwell Runtime 0.5.0, this is 0.4.0: not registered` |
 | `bad_07_other_major.json` | the same text with `1.0.0` |
 | `zz_08_duplicate_name.json` | `skipped, menu name 'inkwelltest_a' is already used by ...InkwellTest_A.json` |
 | `bad_09_engine_name.json` | loads (valid JSON) but then `skipped, the engine already has a menu with this name (vanilla or another plugin)` at `UI::Register` time. It takes a template slot |

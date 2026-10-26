@@ -1,1 +1,1 @@
-{ "specVersion": 6, "name": "InkwellBad_NewerRuntime", "swf": "Interface/InkwellSpikeA.swf", "minRuntime": "0.4.0", "triggers": { "hotkey": 50 } }
+{ "specVersion": 6, "name": "InkwellBad_NewerRuntime", "swf": "Interface/InkwellSpikeA.swf", "minRuntime": "0.5.0", "triggers": { "hotkey": 50 } }

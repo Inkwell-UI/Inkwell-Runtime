@@ -1,0 +1,8 @@
+{
+  "encoding": "utf-16be",
+  "entries": {
+    "$A_One": "Eins",
+    "$A_Two": "Zwei ÄÖ"
+  },
+  "issueLines": []
+}

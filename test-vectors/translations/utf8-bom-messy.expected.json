@@ -1,0 +1,14 @@
+{
+  "encoding": "utf-8",
+  "entries": {
+    "$A_One": "Uno",
+    "$A_Two": "two\ttabbed",
+    "$A_Three": "drei\\",
+    "$A_Four": "a\nb\\cq"
+  },
+  "issueLines": [
+    5,
+    6,
+    7
+  ]
+}

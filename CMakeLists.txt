@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 # The product name lives here and nowhere else; C++ gets it as INKWELL_PRODUCT_NAME.
 set(INKWELL_PRODUCT_NAME "Inkwell")
 
-project(${INKWELL_PRODUCT_NAME} VERSION 0.3.0 LANGUAGES CXX)
+project(${INKWELL_PRODUCT_NAME} VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,7 +16,7 @@ set(INKWELL_DEFAULT_LOG_LEVEL "trace" CACHE STRING "Log level used when Inkwell.
 find_package(nlohmann_json CONFIG REQUIRED)
 
 # ---- core: pure C++ (menu JSON, INI, versions, tables). No engine headers, so the tests build in seconds. ----
-add_library(InkwellCore STATIC src/core/MenuConfig.cpp src/core/Ini.cpp src/core/Saved.cpp
+add_library(InkwellCore STATIC src/core/MenuConfig.cpp src/core/Ini.cpp src/core/Saved.cpp src/core/Translations.cpp
   src/core/Crypto.cpp src/core/WebSocket.cpp src/core/DevProtocol.cpp src/core/DevServer.cpp src/core/DirWatcher.cpp src/core/MenuScan.cpp)
 target_include_directories(InkwellCore PUBLIC src)
 target_compile_definitions(InkwellCore PUBLIC

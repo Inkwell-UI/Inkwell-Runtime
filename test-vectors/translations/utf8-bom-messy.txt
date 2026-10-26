@@ -1,0 +1,9 @@
+﻿; comment
+$A_One	One
+
+$A_Two	two	tabbed
+no tab here
+bad	key
+$A_One	Uno$A_Three	drei\
+# also a comment
+$A_Four	a\nb\\c\q

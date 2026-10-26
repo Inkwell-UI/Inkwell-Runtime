@@ -1,5 +1,7 @@
 #include "MenuConfig.h"
 
+#include "Translations.h"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -211,8 +213,13 @@ namespace inkwell
 				NoteUnknown(*it, { "hotkey", "papyrus", "modEvent" }, "triggers", res.problems);
 			}
 
+			if (const auto it = j.find("translations"); it != j.end()) {
+				if (!it->is_string() || !IsValidTranslationMod(it->get_ref<const std::string&>())) Fail("translations", "must match ^[A-Za-z][A-Za-z0-9_]{0,63}$");
+				d.translations = it->get<std::string>();
+			}
+
 			if (const auto it = j.find("extra"); it != j.end() && !it->is_object()) Fail("extra", "expected an object");
-			NoteUnknown(j, { "specVersion", "name", "swf", "minRuntime", "flags", "inputContext", "depth", "triggers", "extra" }, "", res.problems);
+			NoteUnknown(j, { "specVersion", "name", "swf", "minRuntime", "flags", "inputContext", "depth", "triggers", "translations", "extra" }, "", res.problems);
 
 			// S3 rule 4: minRuntime against the running version
 			const auto required = ParseVersion(d.minRuntime);

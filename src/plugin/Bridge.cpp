@@ -22,6 +22,7 @@ namespace inkwell
 			kPlaySound,
 			kGetSetting,
 			kGetInputDevice,
+			kTranslate,
 			kGetSaved,
 			kSetSaved,
 			kWatch,
@@ -90,7 +91,7 @@ namespace inkwell
 			return spdlog::level::info;
 		}
 
-		const char* kNames[] = { "log", "glueReady", "openMenu", "closeMenu", "sendModEvent", "callRuntime", "playSound", "getSetting", "getInputDevice", "getSaved", "setSaved", "watch", "pin", "inkwellTrace" };
+		const char* kNames[] = { "log", "glueReady", "openMenu", "closeMenu", "sendModEvent", "callRuntime", "playSound", "getSetting", "getInputDevice", "translate", "getSaved", "setSaved", "watch", "pin", "inkwellTrace" };
 
 		class BridgeFn : public RE::GFxFunctionHandler
 		{
@@ -187,6 +188,13 @@ namespace inkwell
 					}
 					log::debug("[AS2] [{}] getSetting('{}', '{}', '{}') -> '{}'{}", menu, section, key, dflt, value, found ? "" : " (default)");
 					RetString(p, value);
+					break;
+				}
+				case Fn::kTranslate: {
+					const auto key = Str(p, 0);
+					const auto text = rt.Translate(e, key);
+					log::trace("[AS2] [{}] translate('{}') -> {}", menu, key, text == key ? "no entry (the key itself)" : "'" + text + "'");
+					RetString(p, text);
 					break;
 				}
 				case Fn::kGetInputDevice:
@@ -307,13 +315,14 @@ namespace inkwell
 		member("offsetX", RE::GFxValue(static_cast<double>(e.eff.offsetX)));
 		member("offsetY", RE::GFxValue(static_cast<double>(e.eff.offsetY)));
 		str("theme", e.eff.theme);
+		str("language", Runtime::Get().language);
 
 		for (int i = 0; i < static_cast<int>(Fn::kLegacyTrace); ++i) {
 			RE::GFxValue fn;
 			mv.CreateFunction(&fn, Handler(static_cast<Fn>(i)).get(), &e);
 			member(kNames[i], fn);
 		}
-		log::info("[{}] bridge: object with {} members built (ok={})", menu, static_cast<int>(Fn::kLegacyTrace) + 7, ok);
+		log::info("[{}] bridge: object with {} members built (ok={})", menu, static_cast<int>(Fn::kLegacyTrace) + 8, ok);
 
 		// attach, then flip `ready` last (S4.2)
 		const bool attached = mv.SetVariable("_root.inkwell", obj);
