@@ -1,6 +1,6 @@
-# In-game test notes: Inkwell Runtime 0.3, phases 2, 5 and 6 (runtime core, saved state, events, dev mode)
+# In-game test notes: Inkwell Runtime 0.3 (runtime core, saved state, events, dev mode)
 
-For the owner. Claude cannot run Skyrim, so nothing below has been seen in game yet. Each step says what you should see; the lines in `Inkwell.log` are the evidence. Please send back `Inkwell.log`, `skse64.log` and the answers to the "Report" questions at the end.
+This is the detailed reference (log lines per step). **The owner's step-by-step test in the order to run it is `TEST-IN-GAME-0.3.md` in the workspace root (`D:\Mods\Inkwell`); start there.** Claude cannot run Skyrim, so nothing below has been seen in game yet. Each step says what you should see; the lines in `Inkwell.log` are the evidence. Please send back `Inkwell.log`, `skse64.log` and the answers to the "Report" questions at the end.
 
 Tested game so far for the spikes: Skyrim SE 1.7.104 (Steam). AE and GOG are unverified (decision 3).
 
@@ -8,9 +8,9 @@ Tested game so far for the spikes: Skyrim SE 1.7.104 (Steam). AE and GOG are unv
 
 | What | Where it comes from |
 |---|---|
-| `Inkwell.dll` | the CI artifact `Inkwell-dll` of the workflow `runtime` (GitHub, Actions, latest run on branch `feat/runtime-core`), or `build\Release\Inkwell.dll` after a local build |
+| `Inkwell.dll` | the CI artifact `Inkwell-dll` of the workflow `runtime` (GitHub, Actions, latest run on `main`), or `build\Release\Inkwell.dll` after a local build |
 | Address Library for SKSE Plugins (v13 or newer for 1.7.104) | already installed for the spikes |
-| `InkwellSpikeA.swf` ... `InkwellSpikeD.swf` | the MO2 mod `Inkwell Spikes` from the 0.0 spikes (`Interface/`). Keep it enabled. They are the only SWFs that exist until the editor's menu target (phase 3) is done. They do not call `glueReady()`, so each open waits 5 s for it and logs a warning: that is expected here |
+| `InkwellSpikeA.swf` ... `InkwellSpikeD.swf` | the MO2 mod `Inkwell Spikes` from the 0.0 spikes (`Interface/`). Keep it enabled. They are the SWFs of sections 1 to 8 (the editor-built samples are in `TEST-IN-GAME-0.3.md`). They do not call `glueReady()`, so each open waits 5 s for it and logs a warning: that is expected here |
 | `Inkwell_API.pex` | compile `papyrus\Source\Scripts\Inkwell_API.psc` (russo: `papyrus.exe compile -nocache -i papyrus\Source\Scripts -o <out>`); CI does not compile it |
 | `InkwellTestHelper.pex` (optional) | the same for `test-assets\papyrus\Source\Scripts\InkwellTestHelper.psc` with `-h papyrus\stubs`; only usable from an attached script, see section 3 |
 
@@ -64,7 +64,7 @@ For every flag combination note what you saw (this is the O6 matrix; the editor 
 
 ## 3. Papyrus (not testable without an attached script)
 
-`cgf` does not exist in this Skyrim SE, and a Papyrus function can only be called from a script that is attached to something (a quest, an alias, a magic effect). `InkwellTestHelper` and `Inkwell_API` are `Hidden` global-function scripts: nothing in this repo attaches them, and the helper cannot register for keys (`RegisterForKey` needs a `Quest`/`Form` script object). The Editor's generated ESP (`src/main/widget/esp.ts`) attaches a script to one start-game-enabled quest, but it is hand-written for HUD widgets (master `SkyUI_SE.esp`, one fixed script) and a menu mod deploys no ESP at all; the generated no-master ESP is Phase 7. So for this phase:
+This Skyrim SE has no console command to call a script function, and a Papyrus function can only be called from a script that is attached to something (a quest, an alias, a magic effect). `InkwellTestHelper` and `Inkwell_API` are `Hidden` global-function scripts: nothing in this repo attaches them, and the helper cannot register for keys (`RegisterForKey` needs a `Quest`/`Form` script object). The Editor's generated runtime-check ESP (`<modId>_RuntimeCheck.esp`, no master, one script on a player alias) only does the version check and never calls `Inkwell_API`; the widget ESP is for HUD widgets. So nothing in this repo or the Editor can call the API for you:
 
 | Check | Without an attached script |
 |---|---|
@@ -77,7 +77,7 @@ For every flag combination note what you saw (this is the O6 matrix; the editor 
 
 What you can still read without a script: the `Inkwell_MenuOpened`/`Inkwell_MenuClosed` lines in `Inkwell.log` (`send mod event ... strArg='InkwellTest_A'`) on every open and close of a hotkey menu, which shows the runtime sends them.
 
-**If you want the Papyrus tests anyway** (optional, needs the Creation Kit): make a plugin with one start-game-enabled quest, attach a script `extends Quest` that calls `RegisterForKey(<scan code>)` in `OnInit`/`OnPlayerLoadGame` and, in `OnKeyDown`, calls `Inkwell_API.Open("InkwellTest_C")`, `Inkwell_API.Open("InkwellTest_D")` (must be refused), `Inkwell_API.Open("NoSuchMenu")`, `Inkwell_API.Close(...)`, `Inkwell_API.SetString("InkwellTest_A", "greeting", "hello")`, and `Debug.Notification(Inkwell_API.GetVersionString())`. Compile with `D:\Mod Tools\Russo Compiler\papyrus.exe compile -nocache -i <src> -o <out>`. Expected log lines are the ones the old console steps listed: `open 'InkwellTest_C' (papyrus): queue kShow`, `refused, the menu JSON has triggers.papyrus=false`, `open 'NoSuchMenu' (papyrus): unknown menu`, `set data 'InkwellTest_A'.greeting = "hello" (papyrus)`, and `mod event 'InkwellTest_Open' -> open 'InkwellTest_A'` for `SendModEvent`. `InkwellTestHelper.SendOpenEvent` / `ReportVersion` can be called from that script. This is not done by Claude and not verified.
+**If you want the Papyrus tests anyway** (optional, needs the Creation Kit): make a plugin with one start-game-enabled quest, attach a script `extends Quest` that calls `RegisterForKey(<scan code>)` in `OnInit`/`OnPlayerLoadGame` and, in `OnKeyDown`, calls `Inkwell_API.Open("InkwellTest_C")`, `Inkwell_API.Open("InkwellTest_D")` (must be refused), `Inkwell_API.Open("NoSuchMenu")`, `Inkwell_API.Close(...)`, `Inkwell_API.SetString("InkwellTest_A", "greeting", "hello")`, and `Debug.Notification(Inkwell_API.GetVersionString())`. Compile with `D:\Mod Tools\Russo Compiler\papyrus.exe compile -nocache -i <src> -o <out>`. Expected log lines: `open 'InkwellTest_C' (papyrus): queue kShow`, `refused, the menu JSON has triggers.papyrus=false`, `open 'NoSuchMenu' (papyrus): unknown menu`, `set data 'InkwellTest_A'.greeting = "hello" (papyrus)`, and `mod event 'InkwellTest_Open' -> open 'InkwellTest_A'` for `SendModEvent`. `InkwellTestHelper.SendOpenEvent` / `ReportVersion` can be called from that script. This is not done by Claude and not verified.
 
 ## 4. The AS2 bridge
 
@@ -115,12 +115,12 @@ Copy `test-assets/ini/Inkwell.ini` to `SKSE/Plugins/Inkwell/Inkwell.ini`. Expect
 - Everything above, in game. The flag mapping (`pausesGame`, `cursor`, `modal`, `inputContext` to engine flags) is the spike's guess plus one change: `kUsesMenuContext` and `inputContext = menuMode` now follow the JSON `inputContext` (default: menuMode when `modal`), not `modal` itself.
 - The hotkey is ignored while `IsApplicationMenuOpen()`, `IsModalMenuOpen()` or `GameIsPaused()` is true. If the hotkey never opens a menu in plain gameplay, the log line `ignored ...: <reason>` tells which test fires.
 - `RegisterListener(nullptr, ...)` (listen to messages from every plugin, used for `kGetInterface`). If SKSE rejects a null sender the log says `listener ... registered: false`; the broadcast `kInterfaceReady` still works.
-- Sub-path SWF names (`Interface/Inkwell/<modId>/<Swf>.swf` giving `LoadMovieEx 'Inkwell/<modId>/<Swf>'`, O2): the missing-SWF menu only proves failure handling; a real sub-path SWF is tested in the phase 4 slice.
+- Sub-path SWF names (`Interface/Inkwell/<modId>/<Swf>.swf` giving `LoadMovieEx 'Inkwell/<modId>/<Swf>'`, O2): the missing-SWF menu only proves failure handling; a real sub-path SWF is test T1 of `TEST-IN-GAME-0.3.md`.
 - AE and GOG.
 
 ## 9. Saved state (S5, phase 5)
 
-All steps are log-driven. They need a menu SWF that calls `inkwell.getSaved` / `inkwell.setSaved`: build one in the Editor with a `Saved` variable (Editor branch `feat/runtime-nodes`, menu graph, Set Variable / Toggle / Counter on that variable) and deploy it with a menu JSON. The spike SWFs never call them. Nothing here has been seen in game. Use a variable `counter` (Number, default 0) in a menu `Foo`.
+All steps are log-driven. They need a menu SWF that calls `inkwell.getSaved` / `inkwell.setSaved`: build one in the Editor with a `Saved` variable (menu graph, Set Variable / Toggle / Counter on that variable) and deploy it with a menu JSON. The spike SWFs never call them. Nothing here has been seen in game. Use a variable `counter` (Number, default 0) in a menu `Foo`.
 
 | Step | Expected in `Inkwell.log` |
 |---|---|
@@ -208,7 +208,7 @@ Expected output: `HTTP/1.1 101 Switching Protocols`, then `helloAck ok=true runt
 
 ### 12.3 Trace and watch (needs a menu SWF built for it)
 
-Menu SWFs from the Editor (`feat/runtime-nodes` or later) call `inkwell.log(level, nodeId, text)`; Log nodes and the try/catch failure lines arrive as `trace [info] as2 <menu> node=<id>: text`. A deliberate error (a node that throws) shows up as `trace [error] ... node=<id>` and the menu keeps working. `inkwell.watch` and `inkwell.pin` calls are emitted only into builds deployed with dev mode on; with `--subscribe M --watch` the client prints `watch ...` lines (a full dump when you subscribe and again every time M opens), with `--pins` it prints `pin ...` lines at most 20 per second per pin. The spike SWFs never call any of this.
+Menu SWFs from the Editor call `inkwell.log(level, nodeId, text)`; Log nodes and the try/catch failure lines arrive as `trace [info] as2 <menu> node=<id>: text`. A deliberate error (a node that throws) shows up as `trace [error] ... node=<id>` and the menu keeps working. `inkwell.watch` and `inkwell.pin` calls are emitted only into builds deployed with dev mode on; with `--subscribe M --watch` the client prints `watch ...` lines (a full dump when you subscribe and again every time M opens), with `--pins` it prints `pin ...` lines at most 20 per second per pin. The spike SWFs never call any of this.
 
 ### 12.4 Hot reload
 
@@ -218,9 +218,9 @@ Menu SWFs from the Editor (`feat/runtime-nodes` or later) call `inkwell.log(leve
 4. File watcher: with the game running, change a value in the menu JSON (for example `depth`) or copy another SWF over the menu's SWF. After about 300 ms of quiet: `hot reload (file watcher): reloaded 1, ...` and the menu (if open) reopens. A broken JSON (delete a brace): `skipped ... its file is invalid now; the previous version stays loaded`, nothing breaks; fix the file, it reloads.
 5. Slots: copy a menu JSON to a new name with a new menu `name` while the game runs: `hot reload: new menu '<name>' registered in slot N`, its hotkey works. With all 16 slots used: `skipped ... no free template slot`. Delete a menu JSON: `hot reload: '<name>' removed ... slot N stays reserved`, its hotkey stops, and the slot is **not** reused by a different name (the engine keeps the old name); the same name coming back reuses it.
 
-### 12.5 With the Editor as the client (the editor client is being built next)
+### 12.5 With the Editor as the client
 
-1. Settings, game folder: the MO2 mod folder (or Data folder) the Editor deploys to. Tick the dev deploy option ("Enable Dev Mode"); the Editor writes `[Dev] DevMode=1` and a `Token=` of 64 hex digits into `Inkwell.ini` there.
+1. Settings, game folder: the MO2 mod folder (or Data folder) the Editor deploys to. Tick **Dev deploy** in the Deploy menu; the Editor writes `[Dev] DevMode=1` and a `Token=` of 64 hex digits into `Inkwell.ini` there.
 2. Start Skyrim; check the log lines of 12.1. The Game dot in the status bar turns green after the Editor connects; hover shows the runtime version.
 3. Deploy: files are written, then the Editor sends `reload`. The open menu reloads; the Trace & Watch panel shows lines with node ids.
 4. Close the game: the dot turns grey.
