@@ -135,7 +135,19 @@ namespace inkwell
 	void Runtime::LoadLanguage()
 	{
 		std::string lang = "ENGLISH";
-		if (const auto* s = RE::GetINISetting("sLanguage:General"); s && s->GetType() == RE::Setting::Type::kString && s->GetString()) lang = s->GetString();
+		const char* source = "default";
+		if (const auto* s = RE::GetINISetting("sLanguage:General"); s && s->GetType() == RE::Setting::Type::kString && s->GetString()) {
+			lang = s->GetString();
+			source = "engine setting";
+		} else if (const auto dir = SKSE::log::log_directory()) {
+			// the engine does not always register sLanguage as a setting (S-B2: it read ENGLISH in a German game); the game itself reads this file (MO2 redirects it to the profile)
+			char buf[64]{};
+			const auto ini = (dir->parent_path() / "Skyrim.ini").string();
+			if (GetPrivateProfileStringA("General", "sLanguage", "", buf, sizeof buf, ini.c_str()) > 0) {
+				lang = buf;
+				source = "Skyrim.ini";
+			}
+		}
 		std::transform(lang.begin(), lang.end(), lang.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 		if (!IsValidLanguage(lang)) {
 			log::warn("sLanguage '{}' is not a language name; using ENGLISH for translations", lang);
@@ -143,7 +155,7 @@ namespace inkwell
 		}
 		language = lang;
 		translations.SetDirectory(fs::path("Data") / "Interface" / "Translations");
-		log::info("game language {} (translations are read from Data\\Interface\\Translations on first use)", language);
+		log::info("game language {} from {} (translations are read from Data\\Interface\\Translations on first use)", language, source);
 	}
 
 	std::string Runtime::Translate(const MenuEntry& e, std::string_view key)
