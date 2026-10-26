@@ -97,8 +97,9 @@ namespace inkwell
 
 		fs::path SwfOnDisk(const MenuDef& d) { return fs::path("Data") / d.swf; }
 
-		// Dev hot reload loads a changed SWF under a name the engine has not cached. A file created while the game runs was not found
-		// (LoadMovieEx returned false), so every name exists from startup: DEV_SLOTS copies per menu, each overwritten once and loaded once.
+		// Dev hot reload loads a changed SWF under a name the engine has not cached. The engine only finds loose files that existed when the game
+		// started (a file the plugin creates is not found, seen in game), so a Dev deploy ships DEV_SLOTS copies per menu (editor: devReloadPaths);
+		// each is overwritten once with the new SWF and loaded once.
 		constexpr int DEV_SLOTS = 16;
 		std::string DevBare(const MenuEntry& e, int slot)
 		{
@@ -109,8 +110,10 @@ namespace inkwell
 		bool DevCopy(const MenuEntry& e, int slot, std::error_code& ec)
 		{
 			const auto dest = fs::path("Data/Interface") / (DevBare(e, slot) + ".swf");
-			fs::create_directories(dest.parent_path(), ec);
-			if (ec) return false;
+			if (!fs::exists(dest, ec)) {
+				ec = std::make_error_code(std::errc::no_such_file_or_directory);
+				return false;  // not shipped: deploy again with Dev deploy, then restart the game
+			}
 			fs::copy_file(SwfOnDisk(e.def), dest, fs::copy_options::overwrite_existing, ec);
 			return !ec;
 		}
@@ -126,11 +129,6 @@ namespace inkwell
 		e->file = std::move(c.file);
 		e->slot = slot;
 		e->swfStamp = StampOf(SwfOnDisk(e->def));
-		if (config.devMode) {
-			std::error_code ec;
-			for (int i = 0; i < DEV_SLOTS && DevCopy(*e, i, ec); ++i) {}
-			if (ec) log::warn("dev mode: could not prepare the reload copies of '{}' ({})", e->def.name, ec.message());
-		}
 		return e;
 	}
 
@@ -267,7 +265,7 @@ namespace inkwell
 			} else if (DevCopy(e, e.devSlot, ec)) {
 				e.loadName = DevBare(e, e.devSlot++);
 			} else {
-				log::warn("hot reload: could not copy the SWF ({}); the engine may show the old movie", ec.message());
+				log::warn("hot reload: could not copy the SWF into its reload slot ({}); Dev deploy ships these files, deploy again and restart the game", ec.message());
 			}
 		}
 		e.swfStamp = stamp;
