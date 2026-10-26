@@ -4,6 +4,7 @@
 #include "Dev.h"
 #include "Messaging.h"
 
+#include <cctype>
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -95,6 +96,24 @@ namespace inkwell
 		}
 
 		fs::path SwfOnDisk(const MenuDef& d) { return fs::path("Data") / d.swf; }
+
+		// Dev hot reload loads a changed SWF under a name the engine has not cached. A file created while the game runs was not found
+		// (LoadMovieEx returned false), so every name exists from startup: DEV_SLOTS copies per menu, each overwritten once and loaded once.
+		constexpr int DEV_SLOTS = 16;
+		std::string DevBare(const MenuEntry& e, int slot)
+		{
+			std::string key = MenuNameKey(e.def.name);
+			for (auto& ch : key) if (!std::isalnum(static_cast<unsigned char>(ch))) ch = '_';
+			return "Inkwell/_dev/" + key + "_" + std::to_string(slot);
+		}
+		bool DevCopy(const MenuEntry& e, int slot, std::error_code& ec)
+		{
+			const auto dest = fs::path("Data/Interface") / (DevBare(e, slot) + ".swf");
+			fs::create_directories(dest.parent_path(), ec);
+			if (ec) return false;
+			fs::copy_file(SwfOnDisk(e.def), dest, fs::copy_options::overwrite_existing, ec);
+			return !ec;
+		}
 	}
 
 	std::unique_ptr<MenuEntry> Runtime::MakeEntry(MenuCandidate&& c, std::size_t slot)
@@ -107,6 +126,11 @@ namespace inkwell
 		e->file = std::move(c.file);
 		e->slot = slot;
 		e->swfStamp = StampOf(SwfOnDisk(e->def));
+		if (config.devMode) {
+			std::error_code ec;
+			for (int i = 0; i < DEV_SLOTS && DevCopy(*e, i, ec); ++i) {}
+			if (ec) log::warn("dev mode: could not prepare the reload copies of '{}' ({})", e->def.name, ec.message());
+		}
 		return e;
 	}
 
@@ -236,19 +260,14 @@ namespace inkwell
 		e.file = std::move(c.file);
 		const auto stamp = StampOf(SwfOnDisk(e.def));
 		if (config.devMode && stamp != e.swfStamp) {
-			// The engine keeps a loaded movie by name (the same movieDef came back after a reload), so a changed SWF is loaded under a new name.
-			// shortcut: copies pile up in Data/Interface/Inkwell/_dev, delete them by hand; clean up at startup if it ever matters.
-			const auto stem = fs::path(e.def.swf).stem().string();
-			const auto bare = "Inkwell/_dev/" + stem + "_" + std::to_string(stamp.mtime);
-			const auto dest = fs::path("Data/Interface") / (bare + ".swf");
+			// The engine keeps a loaded movie by name (the same movieDef came back after a reload), so a changed SWF goes into a copy it has not loaded.
 			std::error_code ec;
-			fs::create_directories(dest.parent_path(), ec);
-			fs::copy_file(SwfOnDisk(e.def), dest, fs::copy_options::overwrite_existing, ec);
-			if (ec) {
-				log::warn("hot reload: could not copy the SWF to {} ({}); the engine may show the old movie", dest.string(), ec.message());
-				e.loadName.clear();
+			if (e.devSlot >= DEV_SLOTS) {
+				log::warn("hot reload: all {} reload copies of '{}' are used; restart the game to see further changes", DEV_SLOTS, e.def.name);
+			} else if (DevCopy(e, e.devSlot, ec)) {
+				e.loadName = DevBare(e, e.devSlot++);
 			} else {
-				e.loadName = bare;
+				log::warn("hot reload: could not copy the SWF ({}); the engine may show the old movie", ec.message());
 			}
 		}
 		e.swfStamp = stamp;
