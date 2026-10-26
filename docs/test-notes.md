@@ -12,7 +12,7 @@ Tested game so far for the spikes: Skyrim SE 1.7.104 (Steam). AE and GOG are unv
 | Address Library for SKSE Plugins (v13 or newer for 1.7.104) | already installed for the spikes |
 | `InkwellSpikeA.swf` ... `InkwellSpikeD.swf` | the MO2 mod `Inkwell Spikes` from the 0.0 spikes (`Interface/`). Keep it enabled. They are the only SWFs that exist until the editor's menu target (phase 3) is done. They do not call `glueReady()`, so each open waits 5 s for it and logs a warning: that is expected here |
 | `Inkwell_API.pex` | compile `papyrus\Source\Scripts\Inkwell_API.psc` (russo: `papyrus.exe compile -nocache -i papyrus\Source\Scripts -o <out>`); CI does not compile it |
-| `InkwellTestHelper.pex` (optional) | the same for `test-assets\papyrus\Source\Scripts\InkwellTestHelper.psc` with `-h papyrus\stubs`; it needs SKSE's `SendModEvent` |
+| `InkwellTestHelper.pex` (optional) | the same for `test-assets\papyrus\Source\Scripts\InkwellTestHelper.psc` with `-h papyrus\stubs`; only usable from an attached script, see section 3 |
 
 Make a new MO2 mod folder `Inkwell Runtime Test` (never write into the game's Data) with this content:
 
@@ -44,9 +44,9 @@ Hotkeys of the test menus (DirectInput codes): **O** = A (24), **P** = B (25, mo
    - for every menu: `loaded menu 'InkwellTest_A' (slot 0) swf='Interface/InkwellSpikeA.swf' -> LoadMovieEx 'InkwellSpikeA'`, then `flags: ...`, `triggers: ...`, `ini: ...; effective hotkey=...`. `InkwellTest_B` shows `effective hotkey=22 uiScale=1.5 offset=(40, -20) theme='dark'`; `InkwellTest_C` shows `effective hotkey=none uiScale=2`
    - `5 menu file(s) seen, 5 loaded`, then `UI::Register('InkwellTest_A') done (slot 0)` for each, `input sink registered`, `mod event sink registered`.
 
-## 2. Open and close with the hotkey (in game, no console)
+## 2. Open and close with the hotkey (in game, no console commands)
 
-Load a save. Do not open the console yet.
+Load a save. Do not open the console yet. Everything in this section works from the keyboard only.
 
 | Press | Expected on screen | Expected in `Inkwell.log` |
 |---|---|---|
@@ -60,22 +60,24 @@ Load a save. Do not open the console yet.
 
 Then open the console (`~`) and press **O**: nothing opens; the log says `key 24 ignored for 'InkwellTest_A': the console is open`. Also try the hotkey with the inventory or journal open (expected `ignored ...: an application menu ... is open` or `the game is paused by a menu`), and while another Inkwell menu is open.
 
-For every flag combination note what you saw (this is the O6 matrix; the editor will rely on it): A = pausesGame+cursor+modal+menuMode, B = cursor only, C = nothing (opened from Papyrus), D = pausesGame only without Esc. Questions: did the game pause? was the cursor visible? could you still move the character (WASD) while the menu was open? did a click reach the world?
+For every flag combination note what you saw (this is the O6 matrix; the editor will rely on it): A = pausesGame+cursor+modal+menuMode, B = cursor only, C = nothing (needs its INI block removed, see section 3), D = pausesGame only without Esc. Questions: did the game pause? was the cursor visible? could you still move the character (WASD) while the menu was open? did a click reach the world?
 
-## 3. Papyrus
+## 3. Papyrus (not testable without an attached script)
 
-With the console (`~`): `cgf "Inkwell_API.Open" "InkwellTest_C"`. Close the console. Expected: C opens (depth 5). Log: `open 'InkwellTest_C' (papyrus): queue kShow`.
+`cgf` does not exist in this Skyrim SE, and a Papyrus function can only be called from a script that is attached to something (a quest, an alias, a magic effect). `InkwellTestHelper` and `Inkwell_API` are `Hidden` global-function scripts: nothing in this repo attaches them, and the helper cannot register for keys (`RegisterForKey` needs a `Quest`/`Form` script object). The Editor's generated ESP (`src/main/widget/esp.ts`) attaches a script to one start-game-enabled quest, but it is hand-written for HUD widgets (master `SkyUI_SE.esp`, one fixed script) and a menu mod deploys no ESP at all; the generated no-master ESP is Phase 7. So for this phase:
 
-| Console command | Expected |
+| Check | Without an attached script |
 |---|---|
-| `cgf "InkwellTestHelper.ReportVersion"` | notification `Inkwell Runtime 0.3.0 packed 196608 registered A: True` |
-| `cgf "Inkwell_API.Open" "InkwellTest_D"` | nothing opens; log `refused, the menu JSON has triggers.papyrus=false` |
-| `cgf "Inkwell_API.Open" "NoSuchMenu"` | log `open 'NoSuchMenu' (papyrus): unknown menu` |
-| `cgf "Inkwell_API.Close" "InkwellTest_C"` | C closes |
-| `cgf "Inkwell_API.SetString" "InkwellTest_A" "greeting" "hello"` | log `set data 'InkwellTest_A'.greeting = "hello" (papyrus)` and, when A is open and has a menu class, an `onMessage` line. The spike SWFs have no menu class, so you only see `replaying 1 stored value(s)` the next time A opens |
-| `cgf "InkwellTestHelper.SendOpenEvent" "InkwellTest_Open"` | menu A opens through its mod event: `mod event 'InkwellTest_Open' -> open 'InkwellTest_A'` |
+| Open and close a menu with a hotkey, Esc, flags, INI overrides, bad files, slot limit (sections 1, 2, 5, 6, 7) | **Doable**, no Papyrus |
+| The AS2 bridge (section 4) and the editor slice (`TEST-IN-GAME-0.3-slice.md`) | **Doable**, hotkey from the menu JSON |
+| `Inkwell_API.Open/Close/IsMenuOpen/IsMenuRegistered/SetString/SetNumber/SetBool/GetVersion` | **Not doable.** Needs a script. The C++ side is covered only by the `registered functions` log line at kDataLoaded |
+| `triggers.papyrus=false` refusal (menu D), unknown menu name | **Not doable** (Papyrus call) |
+| Mod event open (`triggers.modEvent`) and `Inkwell_MenuOpened/Closed` receivers | **Not doable** (needs `SendModEvent`, a script). Another installed mod that sends a mod event could trigger it, but none is known to |
+| Menu C (its hotkey is removed by the INI) | Doable by editing the INI: delete the `[Menu.InkwellTest_C]` block of `InkwellTest.ini` and C opens with **L** |
 
-The mod events `Inkwell_MenuOpened` / `Inkwell_MenuClosed` show up in the log as `send mod event 'Inkwell_MenuOpened' strArg='InkwellTest_A'` on every open/close. (A script that registers for them is not part of this phase.)
+What you can still read without a script: the `Inkwell_MenuOpened`/`Inkwell_MenuClosed` lines in `Inkwell.log` (`send mod event ... strArg='InkwellTest_A'`) on every open and close of a hotkey menu, which shows the runtime sends them.
+
+**If you want the Papyrus tests anyway** (optional, needs the Creation Kit): make a plugin with one start-game-enabled quest, attach a script `extends Quest` that calls `RegisterForKey(<scan code>)` in `OnInit`/`OnPlayerLoadGame` and, in `OnKeyDown`, calls `Inkwell_API.Open("InkwellTest_C")`, `Inkwell_API.Open("InkwellTest_D")` (must be refused), `Inkwell_API.Open("NoSuchMenu")`, `Inkwell_API.Close(...)`, `Inkwell_API.SetString("InkwellTest_A", "greeting", "hello")`, and `Debug.Notification(Inkwell_API.GetVersionString())`. Compile with `D:\Mod Tools\Russo Compiler\papyrus.exe compile -nocache -i <src> -o <out>`. Expected log lines are the ones the old console steps listed: `open 'InkwellTest_C' (papyrus): queue kShow`, `refused, the menu JSON has triggers.papyrus=false`, `open 'NoSuchMenu' (papyrus): unknown menu`, `set data 'InkwellTest_A'.greeting = "hello" (papyrus)`, and `mod event 'InkwellTest_Open' -> open 'InkwellTest_A'` for `SendModEvent`. `InkwellTestHelper.SendOpenEvent` / `ReportVersion` can be called from that script. This is not done by Claude and not verified.
 
 ## 4. The AS2 bridge
 
@@ -118,4 +120,4 @@ Copy `test-assets/ini/Inkwell.ini` to `SKSE/Plugins/Inkwell/Inkwell.ini`. Expect
 
 ## Report
 
-Please send `Inkwell.log`, `skse64.log`, the Papyrus log if a `cgf` call printed an error, and: (1) did the DLL load; (2) per menu A to D: paused, cursor, movement, Esc behaviour; (3) which hotkeys were ignored and why; (4) did the missing-SWF menu crash, hang or only notify; (5) any `error` or `warn` line you did not expect.
+Please send `Inkwell.log`, `skse64.log`, and: (1) did the DLL load; (2) per menu A to D: paused, cursor, movement, Esc behaviour; (3) which hotkeys were ignored and why; (4) did the missing-SWF menu crash, hang or only notify; (5) any `error` or `warn` line you did not expect.
