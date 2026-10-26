@@ -4,7 +4,7 @@ SKSE plugin that registers Inkwell custom menus, bridges Papyrus, AS2 and C++, k
 
 ## Commands
 
-Spike code lives in `spikes/runtime-menu/` (CMake preset, vcpkg manifest). Local build: set `VCPKG_ROOT`, then `cmake --preset release` and `cmake --build --preset release` there (the first CommonLibSSE-NG build takes about 15 minutes). CI: `.github/workflows/runtime-spike.yml` on a Windows runner; it prints the configure/build log tail as annotations. The preset names no Visual Studio generator, because runner images change. Every change must build in CI.
+The plugin is at the repo root (`CMakeLists.txt`, `src/`, `include/`, `papyrus/`); `spikes/` is history and stays untouched. Local build: set `VCPKG_ROOT` (`C:/dev/vcpkg` here), then `cmake --preset release`, `cmake --build --preset release` and `ctest --preset release` (the first CommonLibSSE-NG build takes about 15 minutes). For the engine-free core and its unit tests only, use the `tests` preset (seconds). CI: `.github/workflows/runtime.yml` on a Windows runner (build, ctest, artifact `Inkwell-dll`; it prints the configure/build log tail as annotations). The preset names no Visual Studio generator, because runner images change. Every change must build in CI. `src/core` has no engine headers, so its logic is unit-tested; `test-vectors/ini/` is shared with `Inkwell-Spec` (the INI parser must give the same result as the Spec's `parseIni`). `docs/test-notes.md` holds the owner's in-game steps. Papyrus: `papyrus.exe compile -nocache -i papyrus/Source/Scripts -o <out>` (russo compiler, no stubs needed); `.pex` files are never committed.
 
 ## Stack
 

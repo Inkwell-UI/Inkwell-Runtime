@@ -1,8 +1,9 @@
-name: runtime-spike
+name: runtime
 
 on:
   push:
-    paths: ["spikes/runtime-menu/**", ".github/workflows/runtime-spike.yml"]
+    paths-ignore: ["spikes/**", "docs/**", "*.md"]
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -26,11 +27,10 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: vcpkg-cache
-          key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('spikes/runtime-menu/vcpkg.json') }}
+          key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-${{ env.VCPKG_COMMIT }}-
 
       - name: Configure
-        working-directory: spikes/runtime-menu
         shell: pwsh
         run: |
           cmake --preset release 2>&1 | Tee-Object -FilePath configure.log
@@ -44,7 +44,6 @@ jobs:
           }
 
       - name: Build
-        working-directory: spikes/runtime-menu
         shell: pwsh
         run: |
           cmake --build --preset release 2>&1 | Tee-Object -FilePath build.log
@@ -57,8 +56,25 @@ jobs:
             exit 1
           }
 
+      - name: Unit tests
+        shell: pwsh
+        run: |
+          ctest --preset release 2>&1 | Tee-Object -FilePath test.log
+          if ($LASTEXITCODE -ne 0) {
+            $m = (@(Get-Content test.log -Tail 70) -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
+            Write-Host "::error title=unit tests::$m"
+            exit 1
+          }
+
+      # Never commit the DLL or PDB: the artifact is the only way a build leaves CI.
       - uses: actions/upload-artifact@v4
         with:
           name: Inkwell-dll
-          path: spikes/runtime-menu/build/Release/Inkwell.dll
+          path: build/Release/Inkwell.dll
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Inkwell-papyrus-source
+          path: papyrus/Source
           if-no-files-found: error
