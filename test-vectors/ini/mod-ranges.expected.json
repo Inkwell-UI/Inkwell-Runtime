@@ -4,7 +4,7 @@
     "menus": {
       "A": {
         "openKey": 0,
-        "uiScale": 0.5,
+        "uiScale": 0.2,
         "offsetX": 960
       },
       "B": {
@@ -80,7 +80,7 @@
     {
       "menu": "A",
       "effective": {
-        "uiScale": 0.5,
+        "uiScale": 0.2,
         "offsetX": 960,
         "offsetY": 0,
         "theme": ""
@@ -90,7 +90,7 @@
       "menu": "A",
       "jsonHotkey": 37,
       "effective": {
-        "uiScale": 0.5,
+        "uiScale": 0.2,
         "offsetX": 960,
         "offsetY": 0,
         "theme": ""

@@ -10,7 +10,7 @@
 
 namespace inkwell
 {
-	inline constexpr double kUiScaleMin = 0.5, kUiScaleMax = 2.0;
+	inline constexpr double kUiScaleMin = 0.2, kUiScaleMax = 2.0;
 
 	struct MenuIni  // [Menu.<name>]; every key optional (absent = not set by the user)
 	{
