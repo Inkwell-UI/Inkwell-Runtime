@@ -67,10 +67,20 @@ jobs:
           }
 
       # Never commit the DLL or PDB: the artifact is the only way a build leaves CI.
+      # Stage the Data/ layout; the artifact is zipped by GitHub, so the zip root is Data/ (MO2 and manual installs both work).
+      - name: Stage package
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path CMakeLists.txt -Pattern 'project\(\$\{INKWELL_PRODUCT_NAME\} VERSION ([\d.]+)').Matches[0].Groups[1].Value
+          "PACKAGE_NAME=Inkwell-$version" >> $env:GITHUB_ENV
+          New-Item -ItemType Directory -Force package/SKSE/Plugins, package/Interface/Inkwell | Out-Null
+          Copy-Item build/Release/Inkwell.dll, build/Release/Inkwell.pdb package/SKSE/Plugins
+          Copy-Item Interface/Inkwell/SystemMenuInjector.swf package/Interface/Inkwell
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Inkwell-dll
-          path: build/Release/Inkwell.dll
+          name: ${{ env.PACKAGE_NAME }}
+          path: package
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
