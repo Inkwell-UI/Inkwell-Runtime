@@ -7,14 +7,14 @@
 
 #ifndef INKWELL_VERSION_MAJOR
 #define INKWELL_VERSION_MAJOR 0
-#define INKWELL_VERSION_MINOR 4
+#define INKWELL_VERSION_MINOR 5
 #define INKWELL_VERSION_PATCH 0
 #endif
 
 namespace inkwell
 {
 	/// Version of the menu/INI formats this runtime implements (Inkwell-Spec SPEC_VERSION).
-	inline constexpr int kSpecVersion = 7;
+	inline constexpr int kSpecVersion = 8;
 	/// Version of the debug protocol (Inkwell-Spec RUNTIME_PROTOCOL). The server itself arrives in a later phase.
 	inline constexpr int kRuntimeProtocol = 1;
 

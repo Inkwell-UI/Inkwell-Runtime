@@ -482,7 +482,7 @@ static void TestTranslations(const std::filesystem::path& dir)
 		const auto r = ParseMenuDef(j.dump());
 		CHECK_MSG(!r.def && std::any_of(r.problems.begin(), r.problems.end(), [](const Problem& p) { return p.level == Problem::Level::kError && p.message.rfind("translations", 0) == 0; }), bad.dump());
 	}
-	CHECK(Pack(kRuntimeVersion) >= Pack({ 0, 4, 0 }) && kSpecVersion == 7);
+	CHECK(Pack(kRuntimeVersion) >= Pack({ 0, 5, 0 }) && kSpecVersion == 8);
 }
 
 int main(int argc, char** argv)
