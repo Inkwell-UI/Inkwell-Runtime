@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 # The product name lives here and nowhere else; C++ gets it as INKWELL_PRODUCT_NAME.
 set(INKWELL_PRODUCT_NAME "Inkwell")
 
-project(${INKWELL_PRODUCT_NAME} VERSION 0.5.0 LANGUAGES CXX)
+project(${INKWELL_PRODUCT_NAME} VERSION 0.5.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -68,6 +68,7 @@ if(INKWELL_BUILD_PLUGIN)
       src/plugin/Menu.cpp
       src/plugin/Bridge.cpp
       src/plugin/Input.cpp
+      src/plugin/SystemMenu.cpp
       src/plugin/Papyrus.cpp
       src/plugin/Messaging.cpp
       src/plugin/Saved.cpp

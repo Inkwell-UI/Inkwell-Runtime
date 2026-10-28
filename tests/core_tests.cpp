@@ -83,7 +83,7 @@ static json GoodMenu()
 	return json::parse(R"({
 	  "specVersion": 6, "name": "MyMod_Wheel", "swf": "Interface/Inkwell/MyMod/Wheel.swf", "minRuntime": "0.3.0",
 	  "flags": { "pausesGame": true, "cursor": true, "modal": true, "closeOnEscape": true, "future": 1 }, "inputContext": "menuMode", "depth": 3,
-	  "triggers": { "hotkey": 37, "papyrus": true, "modEvent": "MyMod_OpenWheel", "more": [1] }, "extra": { "a": 1 }, "unknownTop": { "x": 1 } })");
+	  "triggers": { "hotkey": 37, "papyrus": true, "modEvent": "MyMod_OpenWheel", "systemMenu": "$WHEEL", "more": [1] }, "extra": { "a": 1 }, "unknownTop": { "x": 1 } })");
 }
 
 static MenuParseResult Parse(const json& j) { return ParseMenuDef(j.dump()); }
@@ -105,7 +105,7 @@ static void TestMenuDef()
 			CHECK(r.def->name == "MyMod_Wheel" && r.def->bareSwf == "Inkwell/MyMod/Wheel");
 			CHECK(r.def->pausesGame && r.def->cursor && r.def->modal && r.def->closeOnEscape);
 			CHECK(r.def->inputContext == InputContext::kMenuMode && r.def->depth == 3);
-			CHECK(r.def->hotkey == 37 && r.def->papyrus && r.def->modEvent == "MyMod_OpenWheel");
+			CHECK(r.def->hotkey == 37 && r.def->papyrus && r.def->modEvent == "MyMod_OpenWheel" && r.def->systemMenu == "$WHEEL");
 		}
 		CHECK(!r.problems.empty());  // unknown keys are noted at debug level
 		for (const auto& p : r.problems) CHECK(p.level == Problem::Level::kDebug);
@@ -137,6 +137,8 @@ static void TestMenuDef()
 		{ "depth 16", { { "depth", 16 } }, "depth" }, { "depth -1", { { "depth", -1 } }, "depth" }, { "depth frac", { { "depth", 1.5 } }, "depth" },
 		{ "hotkey 1", { { "triggers", { { "hotkey", 1 } } } }, "triggers.hotkey" }, { "hotkey 256", { { "triggers", { { "hotkey", 256 } } } }, "triggers.hotkey" },
 		{ "modEvent space", { { "triggers", { { "modEvent", "a b" } } } }, "triggers.modEvent" },
+		{ "systemMenu empty", { { "triggers", { { "systemMenu", "" } } } }, "triggers.systemMenu" },
+		{ "systemMenu 65", { { "triggers", { { "systemMenu", std::string(65, 'a') } } } }, "triggers.systemMenu" },
 		{ "modEvent 65", { { "triggers", { { "modEvent", std::string(65, 'a') } } } }, "triggers.modEvent" },
 		{ "flag type", { { "flags", { { "modal", "yes" } } } }, "flags.modal" }, { "papyrus type", { { "triggers", { { "papyrus", 1 } } } }, "triggers.papyrus" },
 		{ "specVersion string", { { "specVersion", "6" } }, "specVersion" }, { "specVersion old", { { "specVersion", 5 } }, "specVersion" },

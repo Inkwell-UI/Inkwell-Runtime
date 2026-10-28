@@ -239,3 +239,7 @@ Skyrim loads `Interface/Translations/<Name>_<LANGUAGE>.txt` only for loaded plug
 ## Report
 
 Please send `Inkwell.log`, `skse64.log`, and: (1) did the DLL load; (2) per menu A to D: paused, cursor, movement, Esc behaviour; (3) which hotkeys were ignored and why; (4) did the missing-SWF menu crash, hang or only notify; (5) any `error` or `warn` line you did not expect.
+
+## System menu entry (0.5.1, triggers.systemMenu)
+
+Set `"systemMenu": "Test Menu"` in a menu JSON and copy `Interface/Inkwell/SystemMenuInjector.swf` to `Data/Interface/Inkwell/`. Open the Journal > System: the entry must sit under Load, Save/Load/Settings/Quit must still run their own action, picking it must close the Journal and open the menu. Log lines: `system menu: loading ...`, `system menu: '<name>' picked`. Check with SkyUI and with the vanilla Journal. Unverified: the `_global.InkwellSystemMenus` hand-over, `createEmptyMovieClip` with a numeric depth, and `$Key` labels.

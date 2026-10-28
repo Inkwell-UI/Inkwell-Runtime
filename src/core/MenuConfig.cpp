@@ -210,7 +210,11 @@ namespace inkwell
 					if (!m->is_string() || !IsValidModEventName(m->get_ref<const std::string&>())) Fail("triggers.modEvent", "must match ^[A-Za-z0-9_]{1,64}$");
 					d.modEvent = m->get<std::string>();
 				}
-				NoteUnknown(*it, { "hotkey", "papyrus", "modEvent" }, "triggers", res.problems);
+				if (const auto m = it->find("systemMenu"); m != it->end()) {
+					if (!m->is_string() || m->get_ref<const std::string&>().empty() || m->get_ref<const std::string&>().size() > 64) Fail("triggers.systemMenu", "must be a string of 1 to 64 characters");
+					d.systemMenu = m->get<std::string>();
+				}
+				NoteUnknown(*it, { "hotkey", "papyrus", "modEvent", "systemMenu" }, "triggers", res.problems);
 			}
 
 			if (const auto it = j.find("translations"); it != j.end()) {

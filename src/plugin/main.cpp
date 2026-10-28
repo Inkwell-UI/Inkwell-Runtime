@@ -2,6 +2,7 @@
 // and exposes the Papyrus API (S4.1), the AS2 bridge (S4.2) and the SKSE messaging interface (S4.3). Everything logs verbosely.
 #include "Dev.h"
 #include "Input.h"
+#include "SystemMenu.h"
 #include "Menu.h"
 #include "Messaging.h"
 #include "Papyrus.h"
@@ -20,6 +21,7 @@ namespace
 			rt.LoadMenus();
 			rt.RegisterMenus();
 			InstallInputSinks();
+			InstallSystemMenuSinks();
 			devmode::Start();
 		} catch (const std::exception& e) {
 			log::error("kDataLoaded: {}", e.what());

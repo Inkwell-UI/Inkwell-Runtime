@@ -8,7 +8,7 @@
 #ifndef INKWELL_VERSION_MAJOR
 #define INKWELL_VERSION_MAJOR 0
 #define INKWELL_VERSION_MINOR 5
-#define INKWELL_VERSION_PATCH 0
+#define INKWELL_VERSION_PATCH 1
 #endif
 
 namespace inkwell
