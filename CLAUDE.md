@@ -24,3 +24,5 @@ C++, CommonLibSSE-NG (alandtse's fork, GPL-3.0-or-later), Address Library, spdlo
 - **Saved state goes through SKSE co-save,** versioned so older saves still load: unique id `INKW`, one `SVAR` record per menu, layout and limits in S5 (`src/core/Saved.*`, constants mirror Spec `COSAVE_*`/`SAVED_LIMITS`). A record version the runtime does not know is skipped and logged, never fatal. A change to the byte layout needs a new record version (readers keep decoding the old one).
 - **Log generously with spdlog.** In-game testing is done by hand, so each run must tell as much as possible.
 - **Testing:** Claude can't run Skyrim. Keep a small test menu and step-by-step test notes in the repo for the author to run.
+
+**Status (0.5, 2026-10-28):** version 0.5.0, `kSpecVersion` 8 (a spec 8 menu JSON no longer logs the "newer than this runtime" warning). No functional change since 0.4. Gamepad (0.5, tested in game on SE 1.7.104): with `inputContext` menuMode the pad reaches the menu as `onInput`, B closes the menu, the active device switches live; a menu replacement has no runtime. AE and GOG are not tested.
