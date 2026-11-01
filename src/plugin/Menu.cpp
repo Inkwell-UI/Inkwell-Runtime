@@ -42,7 +42,14 @@ namespace inkwell
 			return;
 		}
 		// LoadMovieEx prepends "Interface/" and appends ".swf" itself, so it gets the normalized bare name (S1)
-		const std::string& load = a_entry.loadName.empty() ? d.bareSwf : a_entry.loadName;
+		// a menu with `variants` opens the layout of the screen's shape (Spec pickSwf); a dev hot-reload copy (loadName) is always the 16:9 file
+		const auto screen = RE::BSGraphics::Renderer::GetScreenSize();
+		const double ratio = screen.height ? static_cast<double>(screen.width) / static_cast<double>(screen.height) : 0.0;
+		const auto choice = PickSwf(d, ratio);
+		const std::string& load = a_entry.loadName.empty() ? *choice.bare : a_entry.loadName;
+		// a screen only a few percent off the chosen shape is filled by stretching the movie, not left with thin bars (the engine fits movies without distortion)
+		const bool stretch = !d.variants.empty() && ShouldStretch(choice.shape, ratio);
+		if (!d.variants.empty()) log::info("[{}] screen {}x{} (ratio {:.3f}): {} variant(s) -> '{}' (shape {:.3f}, {})", _name, screen.width, screen.height, ratio, d.variants.size(), load, choice.shape, stretch ? "stretched to fit" : "fitted without distortion");
 		log::info("[{}] LoadMovieEx name='{}'", _name, load);
 		const bool ok = sm->LoadMovieEx(this, load, [this](RE::GFxMovieDef* a_def2) {
 			log::info("[{}] LoadMovieEx callback: movieDef={} url='{}'", _name, static_cast<const void*>(a_def2), a_def2 ? a_def2->GetFileURL() : "");
@@ -52,6 +59,11 @@ namespace inkwell
 			log::error("[{}] no movie: '{}' is missing, misspelled (it is relative to Data/) or failed to load", _name, d.swf);
 			_phase = Phase::kFailed;
 			return;
+		}
+
+		if (stretch) {
+			uiMovie->SetViewScaleMode(RE::GFxMovieView::ScaleModeType::kExactFit);
+			log::info("[{}] view scale mode set to exact fit (now {})", _name, static_cast<int>(uiMovie->GetViewScaleMode()));
 		}
 
 		RE::GFxValue root;

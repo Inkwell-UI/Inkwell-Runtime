@@ -122,6 +122,28 @@ namespace inkwell
 		return std::string(bare);
 	}
 
+	SwfChoice PickSwf(const MenuDef& def, double ratio)
+	{
+		constexpr double k16x9 = 16.0 / 9.0;
+		SwfChoice        best{ &def.bareSwf, k16x9 };
+		if (!(ratio > 0)) return best;
+		double bestD = std::fabs(std::log(ratio / k16x9));
+		for (const auto& v : def.variants) {
+			const double d = std::fabs(std::log(ratio / v.ratio));
+			if (d < bestD - 1e-9) best = { &v.bareSwf, v.ratio }, bestD = d;
+		}
+		return best;
+	}
+
+	const std::string& PickBareSwf(const MenuDef& def, double ratio) { return *PickSwf(def, ratio).bare; }
+
+	bool ShouldStretch(double shape, double ratio)
+	{
+		if (!(shape > 0) || !(ratio > 0)) return false;
+		const double d = std::fabs(std::log(ratio / shape));
+		return d > 0.005 && d <= kStretchTolerance;  // under 0.5 % off the bars are invisible, so leave the movie alone
+	}
+
 	MenuParseResult ParseMenuDef(std::string_view text, const Version& have)
 	{
 		MenuParseResult res;
@@ -166,6 +188,21 @@ namespace inkwell
 				const auto bare = NormalizeSwfPath(d.swf);
 				if (!bare) Fail("swf", "must be relative to Data/, start with Interface/, end with .swf, use / and contain no '..', ':' or leading '/'");
 				d.bareSwf = *bare;
+			}
+			if (const auto it = j.find("variants"); it != j.end()) {
+				if (!it->is_object()) Fail("variants", "expected an object of \"W:H\" keys and swf paths");
+				for (const auto& [key, val] : it->items()) {
+					const auto colon = key.find(':');
+					long long  w = 0, h = 0;
+					const bool shaped = colon != std::string::npos && colon >= 1 && colon <= 3 && key.size() - colon - 1 >= 1 && key.size() - colon - 1 <= 3 &&
+					                    std::all_of(key.begin(), key.begin() + colon, IsDigit) && std::all_of(key.begin() + colon + 1, key.end(), IsDigit);
+					if (shaped) w = std::stoll(key.substr(0, colon)), h = std::stoll(key.substr(colon + 1));
+					if (!shaped || w < 1 || h < 1) Fail("variants." + key, "the key must be a screen shape like \"21:9\"");
+					if (!val.is_string()) Fail("variants." + key, "expected a string");
+					const auto vbare = NormalizeSwfPath(val.get_ref<const std::string&>());
+					if (!vbare) Fail("variants." + key, "must be relative to Data/, start with Interface/, end with .swf, use / and contain no '..', ':' or leading '/'");
+					d.variants.push_back({ static_cast<double>(w) / static_cast<double>(h), val.get<std::string>(), *vbare });
+				}
 			}
 			if (const auto it = j.find("minRuntime"); it != j.end()) {
 				if (!it->is_string() || !IsMinRuntimeShape(it->get_ref<const std::string&>())) Fail("minRuntime", "must look like 0.3.0 (MAJOR.MINOR.PATCH, 1 to 3 digits each)");
@@ -223,7 +260,7 @@ namespace inkwell
 			}
 
 			if (const auto it = j.find("extra"); it != j.end() && !it->is_object()) Fail("extra", "expected an object");
-			NoteUnknown(j, { "specVersion", "name", "swf", "minRuntime", "flags", "inputContext", "depth", "triggers", "translations", "extra" }, "", res.problems);
+			NoteUnknown(j, { "specVersion", "name", "swf", "variants", "minRuntime", "flags", "inputContext", "depth", "triggers", "translations", "extra" }, "", res.problems);
 
 			// S3 rule 4: minRuntime against the running version
 			const auto required = ParseVersion(d.minRuntime);

@@ -15,12 +15,22 @@ namespace inkwell
 
 	enum class InputContext { kNone, kMenuMode };
 
+	/// One `variants` entry: the layout for a screen of this shape (width / height).
+	struct SwfVariant
+	{
+		double      ratio{ 0 };
+		std::string swf;      // as written in the file
+		std::string bareSwf;  // for LoadMovieEx
+		bool operator==(const SwfVariant&) const = default;
+	};
+
 	struct MenuDef
 	{
 		int         specVersion{ 0 };
 		std::string name;
 		std::string swf;      // as written in the file
 		std::string bareSwf;  // what LoadMovieEx needs: "Interface/" and ".swf" stripped
+		std::vector<SwfVariant> variants;  // layouts for other screen shapes (`swf` is the 16:9 one), sorted as written
 		std::string minRuntime{ "0.3.0" };
 		bool        pausesGame{ false };
 		bool        cursor{ false };
@@ -45,6 +55,18 @@ namespace inkwell
 
 	/// S1 `swf` rule: the bare movie name, or nullopt when the path is invalid. "Interface/Inkwell/MyMod/Wheel.swf" -> "Inkwell/MyMod/Wheel".
 	std::optional<std::string> NormalizeSwfPath(std::string_view swf);
+
+	/// The movie to open on a screen of `ratio` (width / height): the bare name of `swf` (as 16:9) or of the variant whose shape is nearest
+	/// (compared as a ratio of ratios, Spec `pickSwf`); a tie keeps `swf`.
+	const std::string& PickBareSwf(const MenuDef& def, double ratio);
+
+	/// The same choice with the chosen movie's own shape (16:9 for `swf`), so the caller can tell how far the screen is from it.
+	struct SwfChoice { const std::string* bare; double shape; };
+	SwfChoice PickSwf(const MenuDef& def, double ratio);
+
+	/// A screen this close to the movie's shape (|ln(screen / shape)|, about 5 %) is stretched to fill it instead of leaving thin bars.
+	inline constexpr double kStretchTolerance = 0.05;
+	bool ShouldStretch(double shape, double ratio);
 
 	bool IsValidMenuName(std::string_view name);  // ^[A-Za-z][A-Za-z0-9_]{1,63}$
 	bool IsValidModEventName(std::string_view s);  // ^[A-Za-z0-9_]{1,64}$

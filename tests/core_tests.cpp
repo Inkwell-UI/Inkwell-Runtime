@@ -110,6 +110,40 @@ static void TestMenuDef()
 		CHECK(!r.problems.empty());  // unknown keys are noted at debug level
 		for (const auto& p : r.problems) CHECK(p.level == Problem::Level::kDebug);
 	}
+	{  // variants: the nearest screen shape wins, 16:9 and no match keep `swf` (the Spec's pickSwf vectors)
+		auto j = json{ { "specVersion", 8 }, { "name", "Ab" }, { "swf", "Interface/M/a.swf" },
+			{ "variants", { { "16:10", "Interface/M/a_16x10.swf" }, { "21:9", "Interface/M/a_21x9.swf" }, { "32:9", "Interface/M/a_32x9.swf" } } } };
+		const auto r = Parse(j);
+		CHECK(r.def.has_value());
+		if (r.def) {
+			const auto at = [&](double w, double h) { return PickBareSwf(*r.def, w / h); };
+			CHECK(r.def->variants.size() == 3);
+			CHECK(at(1920, 1080) == "M/a" && at(3840, 2160) == "M/a");
+			CHECK(at(2560, 1080) == "M/a_21x9" && at(3440, 1440) == "M/a_21x9");
+			CHECK(at(3840, 1080) == "M/a_32x9" && at(5120, 1440) == "M/a_32x9");
+			CHECK(at(1920, 1200) == "M/a_16x10" && at(1280, 1024) == "M/a_16x10");
+			CHECK(PickBareSwf(*r.def, 0) == "M/a");
+			// a screen a few percent off the chosen shape is stretched to fill; one far off, or exactly on it, is not
+			const auto stretch = [&](double w, double h) { const auto c = PickSwf(*r.def, w / h); return ShouldStretch(c.shape, w / h); };
+			CHECK(stretch(1870, 823) && stretch(1870, 540) && stretch(1728, 990));
+			CHECK(!stretch(1920, 1080) && !stretch(2520, 1080) && !stretch(1920, 823));
+			CHECK(!stretch(1280, 1024) && !stretch(1024, 768));  // 5:4 and 4:3 are further than 5 % from any shape: bars stay
+			CHECK(!ShouldStretch(0, 2) && !ShouldStretch(2, 0));
+		}
+		auto none = json{ { "specVersion", 8 }, { "name", "Ab" }, { "swf", "Interface/M/a.swf" } };
+		CHECK(Parse(none).def && PickBareSwf(*Parse(none).def, 21.0 / 9.0) == "M/a");
+		for (const char* bad : { "0:9", "21-9", "x", "1234:9" }) {
+			auto b = j;
+			b["variants"] = { { bad, "Interface/M/a_x.swf" } };
+			CHECK(!Parse(b).def);
+		}
+		auto badPath = j;
+		badPath["variants"]["21:9"] = "a_21x9.swf";
+		CHECK(!Parse(badPath).def);
+		auto notObject = j;
+		notObject["variants"] = "x";
+		CHECK(!Parse(notObject).def);
+	}
 	{  // defaults
 		const auto r = Parse({ { "specVersion", 6 }, { "name", "Ab" }, { "swf", "Interface/a.swf" } });
 		CHECK(r.def.has_value());
