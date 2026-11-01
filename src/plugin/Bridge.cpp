@@ -59,26 +59,42 @@ namespace inkwell
 			if (p.retVal && p.movie) p.movie->CreateString(p.retVal, s.c_str());
 		}
 
-		// S6: bool, number, string or null as is; an Array becomes a JSON string (primitives only, cut later at 512 characters), an Object "[object]"
-		dev::Scalar ToScalar(const RE::GFxValue& v)
+		// An element of an Array as JSON: primitives as is, nested Arrays and plain Objects (members sorted by name) down to `depth` levels,
+		// at most 64 elements or members each; deeper levels give "...", a movie clip or other display object "[object]", anything else null.
+		nlohmann::json ToJson(const RE::GFxValue& v, int depth)
 		{
 			if (v.IsBool()) return v.GetBool();
 			if (v.IsNumber()) return v.GetNumber();
 			if (v.IsString()) return std::string(v.GetString());
+			if (!v.IsObject()) return nullptr;
+			if (v.IsDisplayObject()) return "[object]";
+			if (depth <= 0) return "...";
 			if (v.IsArray()) {
 				nlohmann::json arr = nlohmann::json::array();
 				const auto     n = std::min<std::uint32_t>(v.GetArraySize(), 64);
 				for (std::uint32_t i = 0; i < n; ++i) {
 					RE::GFxValue el;
 					v.GetElement(i, &el);
-					if (el.IsBool()) arr.push_back(el.GetBool());
-					else if (el.IsNumber()) arr.push_back(el.GetNumber());
-					else if (el.IsString()) arr.push_back(std::string(el.GetString()));
-					else arr.push_back(nullptr);
+					arr.push_back(ToJson(el, depth - 1));
 				}
-				return arr.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+				return arr;
 			}
-			if (v.IsObject()) return std::string("[object]");
+			nlohmann::json obj = nlohmann::json::object();
+			std::uint32_t  count = 0;
+			v.VisitMembers([&](const char* name, const RE::GFxValue& member) {
+				if (name && count++ < 64) obj[name] = ToJson(member, depth - 1);
+			});
+			return obj;
+		}
+
+		// S6: bool, number, string or null as is; an Array or a plain Object becomes a JSON string (nested Arrays and Objects included, 4 levels, cut later at 512 characters),
+		// a movie clip or other display object "[object]"
+		dev::Scalar ToScalar(const RE::GFxValue& v)
+		{
+			if (v.IsBool()) return v.GetBool();
+			if (v.IsNumber()) return v.GetNumber();
+			if (v.IsString()) return std::string(v.GetString());
+			if (v.IsObject()) return ToJson(v, 4).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 			return std::monostate{};
 		}
 
