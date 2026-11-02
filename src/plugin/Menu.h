@@ -31,8 +31,16 @@ namespace inkwell
 
 		void BeginOpen(bool a_glueReady, long long a_waitedMs);
 		void BeginClose(const char* a_why);
+		/// Skyrim's blur is a counter, so every raise needs exactly one lower: `_blurred` makes both calls idempotent.
+		void RaiseBlur();
+		void LowerBlur();
+		/// The HUD is one shared movie, so open menus that hide it are counted: it comes back when the last one closes.
+		void HideHud();
+		void ShowHud();
 
 		MenuEntry&                            _entry;
+		bool                                  _blurred{ false };
+		bool                                  _hidHud{ false };
 		std::string                           _name;
 		Phase                                 _phase{ Phase::kLoading };
 		bool                                  _openedBroadcast{ false };

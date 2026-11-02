@@ -82,7 +82,7 @@ static json GoodMenu()
 {
 	return json::parse(R"({
 	  "specVersion": 6, "name": "MyMod_Wheel", "swf": "Interface/Inkwell/MyMod/Wheel.swf", "minRuntime": "0.3.0",
-	  "flags": { "pausesGame": true, "cursor": true, "modal": true, "closeOnEscape": true, "future": 1 }, "inputContext": "menuMode", "depth": 3,
+	  "flags": { "pausesGame": true, "cursor": true, "modal": true, "closeOnEscape": true, "blur": true, "hideHud": true, "future": 1 }, "inputContext": "menuMode", "depth": 3,
 	  "triggers": { "hotkey": 37, "papyrus": true, "modEvent": "MyMod_OpenWheel", "systemMenu": "$WHEEL", "more": [1] }, "extra": { "a": 1 }, "unknownTop": { "x": 1 } })");
 }
 
@@ -103,7 +103,7 @@ static void TestMenuDef()
 		CHECK(r.def.has_value());
 		if (r.def) {
 			CHECK(r.def->name == "MyMod_Wheel" && r.def->bareSwf == "Inkwell/MyMod/Wheel");
-			CHECK(r.def->pausesGame && r.def->cursor && r.def->modal && r.def->closeOnEscape);
+			CHECK(r.def->pausesGame && r.def->cursor && r.def->modal && r.def->closeOnEscape && r.def->blur && r.def->hideHud);
 			CHECK(r.def->inputContext == InputContext::kMenuMode && r.def->depth == 3);
 			CHECK(r.def->hotkey == 37 && r.def->papyrus && r.def->modEvent == "MyMod_OpenWheel" && r.def->systemMenu == "$WHEEL");
 		}
@@ -149,7 +149,7 @@ static void TestMenuDef()
 		CHECK(r.def.has_value());
 		if (r.def) {
 			CHECK(r.def->minRuntime == "0.3.0" && r.def->depth == 3);
-			CHECK(!r.def->pausesGame && !r.def->cursor && !r.def->modal && r.def->closeOnEscape);
+			CHECK(!r.def->pausesGame && !r.def->cursor && !r.def->modal && r.def->closeOnEscape && !r.def->blur && !r.def->hideHud);
 			CHECK(r.def->papyrus && !r.def->hotkey && r.def->modEvent.empty());
 			CHECK(r.def->inputContext == InputContext::kNone);
 		}

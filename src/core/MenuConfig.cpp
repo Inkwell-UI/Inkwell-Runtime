@@ -215,7 +215,9 @@ namespace inkwell
 				d.cursor = GetBool(*it, "cursor", "flags", false);
 				d.modal = GetBool(*it, "modal", "flags", false);
 				d.closeOnEscape = GetBool(*it, "closeOnEscape", "flags", true);
-				NoteUnknown(*it, { "pausesGame", "cursor", "modal", "closeOnEscape" }, "flags", res.problems);
+				d.blur = GetBool(*it, "blur", "flags", false);
+				d.hideHud = GetBool(*it, "hideHud", "flags", false);
+				NoteUnknown(*it, { "pausesGame", "cursor", "modal", "closeOnEscape", "blur", "hideHud" }, "flags", res.problems);
 			}
 
 			if (const auto it = j.find("inputContext"); it != j.end()) {

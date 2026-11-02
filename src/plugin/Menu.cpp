@@ -11,6 +11,15 @@ namespace inkwell
 	namespace
 	{
 		constexpr long long kGlueTimeoutMs = 5000;  // S7: the runtime waits at most 5 s for glueReady() before it sends onOpen
+		int                 g_hudHiders = 0;       // open menus with flags.hideHud (UI thread only)
+
+		void SetHudVisible(bool a_visible)
+		{
+			const auto ui = RE::UI::GetSingleton();
+			const auto hud = ui ? ui->GetMenu<RE::HUDMenu>() : nullptr;
+			if (hud && hud->uiMovie) hud->uiMovie->SetVisible(a_visible);
+			else log::warn("hideHud: the HUD Menu movie is not available; the HUD stays {}", a_visible ? "as it is" : "visible");
+		}
 	}
 
 	InkwellMenu::InkwellMenu(MenuEntry& a_entry) :
@@ -77,6 +86,8 @@ namespace inkwell
 	InkwellMenu::~InkwellMenu()
 	{
 		log::info("[{}] dtor (phase {})", _name, static_cast<int>(_phase));
+		LowerBlur();  // a menu torn down while open (load, quit to menu) must not leave the screen blurred
+		ShowHud();    // nor the HUD hidden
 		if (_openedBroadcast) {
 			_openedBroadcast = false;
 			Runtime::Get().BroadcastMenuState(_entry, false);
@@ -147,13 +158,55 @@ namespace inkwell
 		for (const auto& s : stored) DeliverMessage(s);
 		if (hasClass) CallMenuClass(*uiMovie, _name, "onOpen", {});
 		_phase = Phase::kOpen;
+		if (_entry.def.blur) RaiseBlur();
+		if (_entry.def.hideHud) HideHud();
 		_openedBroadcast = true;
 		Runtime::Get().BroadcastMenuState(_entry, true);
 		devmode::OnMenuOpened(_entry);
 	}
 
+	void InkwellMenu::RaiseBlur()
+	{
+		if (_blurred) return;
+		if (const auto blur = RE::UIBlurManager::GetSingleton()) {
+			blur->IncrementBlurCount();
+			_blurred = true;
+			log::info("[{}] menu blur raised", _name);
+		} else {
+			log::warn("[{}] flags.blur is set but the UIBlurManager singleton is null; no blur", _name);
+		}
+	}
+
+	void InkwellMenu::LowerBlur()
+	{
+		if (!_blurred) return;
+		_blurred = false;
+		if (const auto blur = RE::UIBlurManager::GetSingleton()) {
+			blur->DecrementBlurCount();
+			log::info("[{}] menu blur lowered", _name);
+		}
+	}
+
+	void InkwellMenu::HideHud()
+	{
+		if (_hidHud) return;
+		_hidHud = true;
+		if (++g_hudHiders == 1) SetHudVisible(false);
+		log::info("[{}] HUD hidden ({} menu(s) hiding it)", _name, g_hudHiders);
+	}
+
+	void InkwellMenu::ShowHud()
+	{
+		if (!_hidHud) return;
+		_hidHud = false;
+		if (--g_hudHiders == 0) SetHudVisible(true);
+		log::info("[{}] HUD restored ({} menu(s) still hiding it)", _name, g_hudHiders);
+	}
+
 	void InkwellMenu::BeginClose(const char* a_why)
 	{
+		LowerBlur();
+		ShowHud();
 		if (_phase == Phase::kOpen) {
 			log::info("[{}] closing ({}): calling onClose", _name, a_why);
 			if (uiMovie && HasMenuClass(*uiMovie)) CallMenuClass(*uiMovie, _name, "onClose", {});

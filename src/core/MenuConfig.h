@@ -36,6 +36,8 @@ namespace inkwell
 		bool        cursor{ false };
 		bool        modal{ false };
 		bool        closeOnEscape{ true };
+		bool        blur{ false };  // flags.blur: Skyrim's menu blur while open (absent = off)
+		bool        hideHud{ false };  // flags.hideHud: the HUD (bars, compass) is hidden while open (absent = off)
 		InputContext inputContext{ InputContext::kNone };  // effective value (modal -> menuMode when absent)
 		bool         inputContextExplicit{ false };
 		int          depth{ 3 };

@@ -190,7 +190,7 @@ namespace inkwell
 			auto e = MakeEntry(std::move(c), _menus.size());
 			const auto& d2 = e->def;
 			log::info("{}: loaded menu '{}' (slot {}) swf='{}' -> LoadMovieEx '{}'", e->file, d2.name, e->slot, d2.swf, d2.bareSwf);
-			log::info("  flags: pausesGame={} cursor={} modal={} closeOnEscape={} inputContext={}{} depth={}", d2.pausesGame, d2.cursor, d2.modal, d2.closeOnEscape,
+			log::info("  flags: pausesGame={} cursor={} modal={} closeOnEscape={} blur={} hideHud={} inputContext={}{} depth={}", d2.pausesGame, d2.cursor, d2.modal, d2.closeOnEscape, d2.blur, d2.hideHud,
 				d2.inputContext == InputContext::kMenuMode ? "menuMode" : "none", d2.inputContextExplicit ? "" : " (derived from modal)", d2.depth);
 			log::info("  triggers: json hotkey={} papyrus={} modEvent='{}'; minRuntime {}", d2.hotkey ? std::to_string(*d2.hotkey) : "none", d2.papyrus, d2.modEvent, d2.minRuntime);
 			log::info("  ini: {}; effective hotkey={} uiScale={} offset=({}, {}) theme='{}'", e->iniFile.empty() ? "none" : e->iniFile,
