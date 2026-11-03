@@ -8,6 +8,7 @@
 #include "Papyrus.h"
 #include "Runtime.h"
 #include "Saved.h"
+#include "VanillaAssets.h"
 
 namespace
 {
@@ -18,6 +19,7 @@ namespace
 		log::info("kDataLoaded");
 		auto& rt = Runtime::Get();
 		try {
+			ExtractVanillaInterface();
 			rt.LoadMenus();
 			rt.RegisterMenus();
 			InstallInputSinks();

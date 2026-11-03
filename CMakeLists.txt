@@ -72,7 +72,8 @@ if(INKWELL_BUILD_PLUGIN)
       src/plugin/Papyrus.cpp
       src/plugin/Messaging.cpp
       src/plugin/Saved.cpp
-      src/plugin/Dev.cpp)
+      src/plugin/Dev.cpp
+      src/plugin/VanillaAssets.cpp)
 
   target_include_directories(${INKWELL_PRODUCT_NAME} PRIVATE src include)
   target_compile_definitions(${INKWELL_PRODUCT_NAME} PRIVATE
