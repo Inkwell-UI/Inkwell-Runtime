@@ -26,3 +26,15 @@ C++, CommonLibSSE-NG (alandtse's fork, GPL-3.0-or-later), Address Library, spdlo
 - **Testing:** Claude can't run Skyrim. Keep a small test menu and step-by-step test notes in the repo for the author to run.
 
 **Status (0.5, 2026-10-28):** version 0.5.0, `kSpecVersion` 8 (a spec 8 menu JSON no longer logs the "newer than this runtime" warning). No functional change since 0.4. Gamepad (0.5, tested in game on SE 1.7.104): with `inputContext` menuMode the pad reaches the menu as `onInput`, B closes the menu, the active device switches live; a menu replacement has no runtime. AE and GOG are not tested.
+
+## Agent logging (required for all agents and subagents, any model)
+Log your work in `d:\Mods\Inkwell\agents-logs\YYYY-MM-DD.md` (today's date).
+1. Log one entry per user request, including short follow-ups ("try this fix", "yes do it"). Write it before your first edit for that request, not after. Only log when you actually write something (files, code, config); if the request is research only, don't log. Before writing, open today's log; if it doesn't exist, create it with the heading `# Agent log — YYYY-MM-DD`.
+2. Append (never edit or delete) one entry:
+   ```
+   ## HH:MM · agent|subagent (model-id)[, spawned by agent HH:MM]
+   - **User request:** one-line summary
+   - **Doing:** one or two lines on how you're fulfilling it
+   ```
+3. Say `subagent` if another agent spawned you automatically, otherwise `agent`.
+4. The entry may be written by a haiku model.
