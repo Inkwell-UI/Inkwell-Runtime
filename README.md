@@ -23,13 +23,13 @@ Status: milestone 0.3 (version 0.3.0, spec 6, runtime protocol 1): runtime core,
 ## Layout
 
 ```
-CMakeLists.txt, CMakePresets.json, vcpkg.json   build (product name in one place: INKWELL_PRODUCT_NAME in CMakeLists.txt)
+xmake.lua                                       build (product name and version in one place: PRODUCT_NAME and VERSION in xmake.lua)
 src/core/        pure C++ (no engine): versions, menu JSON validation, INI parser, saved-variable store and co-save record codec, small tables, and the dev server (Crypto, WebSocket, DevProtocol, DevServer on Winsock, DirWatcher, MenuScan). Unit-tested.
 src/plugin/      the SKSE plugin: Runtime (registry), Menu (IMenu), Bridge (AS2), Input, Papyrus, Messaging, main
 include/InkwellAPI.h   C interface for other SKSE plugins (MIT)
 papyrus/Source/Scripts/Inkwell_API.psc   the Papyrus API (ship it with the runtime; compile it with your Papyrus compiler)
 papyrus/stubs/   tiny original header stubs, used only to compile the test helper script
-tests/           core_tests.cpp (CTest `core`), dev_tests.cpp (CTest `dev`: dev server unit tests and a loopback end-to-end run; `InkwellDevTests --serve <port> <token>` keeps a fake server up)
+tests/           core_tests.cpp (xmake test `core`), dev_tests.cpp (xmake test `dev`: dev server unit tests and a loopback end-to-end run; `InkwellDevTests --serve <port> <token>` keeps a fake server up)
 scripts/         dev-client.mjs: a dependency-free dev-mode client for checking the server without the editor
 test-vectors/    INI test vectors shared with Inkwell-Spec (see below)
 test-assets/     test menus, bad menu files, example INIs, a test helper script
@@ -53,29 +53,29 @@ Requires SKSE64 and Address Library for SKSE Plugins (v13 or newer for 1.7.104).
 
 ## Build
 
-Needs Visual Studio 2022 (or newer) with the C++ workload, CMake 3.21+, git and a vcpkg checkout (CI pins commit `23b8a8e7409c2d6346114a88e834165bde79a51c`).
+Needs Visual Studio 2022 (or newer) with the C++ workload, [xmake](https://xmake.io) 3.0+ and git. Dependencies come from xmake-repo. CommonLibSSE-NG v13.1.0 (alandtse fork) is fetched into `extern/CommonLibSSE-NG` by a script, because `xmake.lua` cannot run git.
 
 ```powershell
-git clone https://github.com/microsoft/vcpkg C:\dev\vcpkg
-git -C C:\dev\vcpkg checkout 23b8a8e7409c2d6346114a88e834165bde79a51c
-$env:VCPKG_ROOT = "C:\dev\vcpkg"      # bash: export VCPKG_ROOT=C:/dev/vcpkg
+.\scripts\fetch-commonlib.ps1     # once; does nothing when the pinned tag is already there
 
-# the whole thing: Inkwell.dll + unit tests (the first CommonLibSSE-NG build takes about 15 minutes)
-cmake --preset release
-cmake --build --preset release
-ctest --preset release            # builds nothing; runs the two test programs (core, dev). The DLL is build\Release\Inkwell.dll
+# the whole thing: Inkwell.dll + unit tests (the first CommonLibSSE-NG build takes several minutes)
+xmake f -y -p windows -a x64 -m release
+xmake -y
+xmake test                        # runs the two test programs (core, dev). The DLL is build\windows\x64\release\Inkwell.dll
 
 # only the engine-free core and its tests (seconds, no CommonLibSSE-NG)
-cmake --preset tests
-cmake --build --preset tests
-ctest --preset tests
+xmake f -y -p windows -a x64 -m release --build_plugin=n
+xmake -y
+xmake test
 ```
 
-The presets are `release` (plugin + tests; configure, build and test presets share the name) and `tests` (engine-free core only). The release build needs a long time the first time because vcpkg builds CommonLibSSE-NG; later builds are incremental. The DLL embeds a build timestamp, so two builds of the same source have different SHA-256 values.
+Always pass `-p windows -a x64`: from Git Bash xmake otherwise picks MinGW. The options are `--build_plugin` and `--core_tests` (both default on) and `--default_log_level` (default `trace`: until 1.0 the log defaults to trace so every in-game test run tells as much as possible). Do not rename the first two to `plugin` or `tests`: `plugin` breaks package resolution once CommonLibSSE-NG is included, and `tests` is CommonLibSSE-NG's own option. A build installs nothing; set `INKWELL_INSTALL=1` to let CommonLibSSE-NG's rule install the DLL into `%XSE_TES5_MODS_PATH%` (otherwise it goes to `build\install`). `..\push-runtime.ps1` builds and copies the DLL, PDB and SWF into the MO2 mod. The DLL embeds a build timestamp, so two builds of the same source have different SHA-256 values.
+
+Not verified: that the xmake-built DLL loads in game (it exports the same `SKSEPlugin_Load`, `SKSEPlugin_Query` and `SKSEPlugin_Version` as the earlier CMake build), and whether xmake-repo's package versions match the vcpkg ones the plugin was last tested with (CommonLibSSE-NG pins its own: DirectXMath 2024.02, DirectXTK 24.2.0, spdlog 1.16.0, rapidcsv 8.92).
 
 ## CI
 
-`.github/workflows/runtime.yml` (Windows runner) configures with the `release` preset, builds, runs `ctest` and uploads the `Inkwell-dll` artifact on every push. It has never run on GitHub for 0.3 (nothing is pushed). The DLL, PDB and `.pex` files are never committed.
+`.github/workflows/runtime.yml` (Windows runner) installs xmake, runs `scripts/fetch-commonlib.ps1`, configures, builds, runs `xmake test` and uploads the `Inkwell-<version>` package artifact on every push. The workflow was ported from CMake and has not run on GitHub yet (nothing is pushed). The DLL, PDB and `.pex` files are never committed.
 
 The Papyrus script compiles with the russo compiler (`INKWELL_PAPYRUS` / `D:\Mod Tools\Russo Compiler\papyrus.exe`); no header stubs are needed:
 
@@ -105,4 +105,4 @@ The formats are owned by `Inkwell-Spec` (`src/menu.ts`, `src/ini.ts`, `src/runti
 
 - `Inkwell.dll` and all source in this repository (except `include/`): **GPL-3.0-or-later** (`LICENSE`), because the DLL links CommonLibSSE-NG (GPL-3.0-or-later with a Modding Exception and a Linking Exception covering the game, SKSE and Windows). The no-paywall terms live in the editor and generated-output licences, not here.
 - `include/InkwellAPI.h`: **MIT** (`include/LICENSE`), so any SKSE plugin can use the messaging interface without taking on the GPL. Not legal advice.
-- Dependencies keep their own licences (CommonLibSSE-NG, spdlog, fmt and the other vcpkg ports: see `vcpkg.json`). The Papyrus compiler, SKSE and the game files are never bundled.
+- Dependencies keep their own licences (CommonLibSSE-NG, spdlog, nlohmann-json, DirectXMath and the other xmake packages: see `xmake.lua` and CommonLibSSE-NG's `xmake.lua`). The Papyrus compiler, SKSE and the game files are never bundled.

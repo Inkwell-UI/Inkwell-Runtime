@@ -8,7 +8,7 @@ Tested game so far for the spikes: Skyrim SE 1.7.104 (Steam). AE and GOG are unv
 
 | What | Where it comes from |
 |---|---|
-| `Inkwell.dll` | the CI artifact `Inkwell-dll` of the workflow `runtime` (GitHub, Actions, latest run on `main`), or `build\Release\Inkwell.dll` after a local build |
+| `Inkwell.dll` | the CI artifact `Inkwell-<version>` of the workflow `runtime` (GitHub, Actions, latest run on `main`), or `build\windows\x64\release\Inkwell.dll` after a local build |
 | Address Library for SKSE Plugins (v13 or newer for 1.7.104) | already installed for the spikes |
 | `InkwellSpikeA.swf` ... `InkwellSpikeD.swf` | the MO2 mod `Inkwell Spikes` from the 0.0 spikes (`Interface/`). Keep it enabled. They are the SWFs of sections 1 to 8 (the editor-built samples are in `TEST-IN-GAME-0.3.md`). They do not call `glueReady()`, so each open waits 5 s for it and logs a warning: that is expected here |
 | `Inkwell_API.pex` | compile `papyrus\Source\Scripts\Inkwell_API.psc` (russo: `papyrus.exe compile -nocache -i papyrus\Source\Scripts -o <out>`); CI does not compile it |
@@ -158,7 +158,7 @@ Runtime messages (`onMessage`) come from the same sources as the replay in secti
 
 ## 12. Dev mode: debug server, hot reload, live inspection (S6, phase 6)
 
-Nothing here has been seen in game. The server, the codec, the limits and the file watcher are tested on this machine without the game (`ctest --preset tests`, test `dev`, and `scripts/dev-client.mjs` against `InkwellDevTests --serve`); what is **not** seen is the game side: closing and reopening a real menu, the movie cache, `inkwell.watch`/`inkwell.pin` from a real SWF.
+Nothing here has been seen in game. The server, the codec, the limits and the file watcher are tested on this machine without the game (`xmake test`, test `dev`, and `scripts/dev-client.mjs` against `InkwellDevTests --serve`); what is **not** seen is the game side: closing and reopening a real menu, the movie cache, `inkwell.watch`/`inkwell.pin` from a real SWF.
 
 ### 12.1 What dev mode is, and the off switch
 
