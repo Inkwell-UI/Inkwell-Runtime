@@ -9,36 +9,26 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    env:
-      VCPKG_COMMIT: 23b8a8e7409c2d6346114a88e834165bde79a51c
-      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check out pinned vcpkg
-        shell: pwsh
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
-          git -C $env:VCPKG_ROOT checkout $env:VCPKG_COMMIT
-          & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
-          New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
-
-      - uses: actions/cache@v4
+      - uses: xmake-io/github-action-setup-xmake@v1
         with:
-          path: vcpkg-cache
-          key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-${{ env.VCPKG_COMMIT }}-
+          xmake-version: "3.0.0"
+          actions-cache-folder: .xmake-cache
+          actions-cache-key: xmake-${{ hashFiles('xmake.lua') }}
+
+      - name: Fetch CommonLibSSE-NG
+        shell: pwsh
+        run: ./scripts/fetch-commonlib.ps1
 
       - name: Configure
         shell: pwsh
         run: |
-          cmake --preset release 2>&1 | Tee-Object -FilePath configure.log
+          xmake f -y -v -p windows -a x64 -m release 2>&1 | Tee-Object -FilePath configure.log
           if ($LASTEXITCODE -ne 0) {
             # surface the log tail as annotations (readable without admin rights)
-            $t = @(Get-Content configure.log -Tail 70)
-            $t += Get-ChildItem -Recurse -Include vcpkg-manifest-install.log,issue_body.md,CMakeError.log,CMakeOutput.log -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 40 }
-            $m = ($t -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
+            $m = (@(Get-Content configure.log -Tail 70) -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
             Write-Host "::error title=configure log::$m"
             exit 1
           }
@@ -46,12 +36,9 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          cmake --build --preset release 2>&1 | Tee-Object -FilePath build.log
+          xmake -y 2>&1 | Tee-Object -FilePath build.log
           if ($LASTEXITCODE -ne 0) {
-            # surface the log tail as annotations (readable without admin rights)
-            $t = @(Get-Content build.log -Tail 70)
-            $t += Get-ChildItem -Recurse -Include vcpkg-manifest-install.log,issue_body.md,CMakeError.log,CMakeOutput.log -ErrorAction SilentlyContinue | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 40 }
-            $m = ($t -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
+            $m = (@(Get-Content build.log -Tail 70) -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
             Write-Host "::error title=build log::$m"
             exit 1
           }
@@ -59,7 +46,7 @@ jobs:
       - name: Unit tests
         shell: pwsh
         run: |
-          ctest --preset release 2>&1 | Tee-Object -FilePath test.log
+          xmake test 2>&1 | Tee-Object -FilePath test.log
           if ($LASTEXITCODE -ne 0) {
             $m = (@(Get-Content test.log -Tail 70) -join "`n").Replace('%','%25').Replace("`r",'').Replace("`n",'%0A')
             Write-Host "::error title=unit tests::$m"
@@ -71,10 +58,10 @@ jobs:
       - name: Stage package
         shell: pwsh
         run: |
-          $version = (Select-String -Path CMakeLists.txt -Pattern 'project\(\$\{INKWELL_PRODUCT_NAME\} VERSION ([\d.]+)').Matches[0].Groups[1].Value
+          $version = (Select-String -Path xmake.lua -Pattern 'local VERSION = "([\d.]+)"').Matches[0].Groups[1].Value
           "PACKAGE_NAME=Inkwell-$version" >> $env:GITHUB_ENV
           New-Item -ItemType Directory -Force package/SKSE/Plugins, package/Interface/Inkwell | Out-Null
-          Copy-Item build/Release/Inkwell.dll, build/Release/Inkwell.pdb package/SKSE/Plugins
+          Copy-Item build/windows/x64/release/Inkwell.dll, build/windows/x64/release/Inkwell.pdb package/SKSE/Plugins
           Copy-Item Interface/Inkwell/SystemMenuInjector.swf package/Interface/Inkwell
 
       - uses: actions/upload-artifact@v4

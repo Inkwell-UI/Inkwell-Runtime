@@ -1,8 +1,9 @@
 build/
 build-*/
-vcpkg_installed/
 *.log
 *.pex
 *.dll
 *.pdb
 *.obj
+extern/CommonLibSSE-NG/
+.xmake/
